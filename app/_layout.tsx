@@ -38,6 +38,17 @@ function RootNavigator() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.background } }}>
       <Stack.Protected guard={!!session && !recovering}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="place-form"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+            headerStyle: { backgroundColor: t.card },
+            headerTitleStyle: { color: t.text, fontWeight: '800' },
+            headerTintColor: t.accent,
+            headerShadowVisible: false,
+          }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={!!session && recovering}>
         <Stack.Screen name="reset-password" />

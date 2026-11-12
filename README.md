@@ -9,6 +9,12 @@ It also runs as a website.
 
 ## Features
 
+- **Map of Siargao Island (first screen):** vulcanizing shops (orange tire pins) and mobile
+  Vulcators (green gecko pins), filter chips, "my location", distance, **Call** and **Directions**.
+  The map updates live when a pin is added, moved or removed. Free map: MapLibre + OpenFreeMap
+  (OpenStreetMap data), so there's no API key and no bill.
+- **Admin-only pins:** only users in the `admins` table can add / edit / delete pins
+
 - Sign up / sign in with email + password (with a username), show/hide password, forgot password
 - Feed of everyone's posts (photo + caption), pull to refresh, loads more as you scroll
 - Share a post with a photo from the **camera** or **gallery**. It appears in the feed instantly
@@ -44,7 +50,12 @@ eas.json                build profiles (preview = APK)
 3. *(Optional, for easy testing)* **Authentication → Sign In / Providers → Email**:
    turn off **Confirm email** so new accounts can sign in right away.
 4. **Project Settings → API Keys**: copy the **Project URL** and the **publishable** (or legacy **anon**) key.
-5. **For "Forgot password?"**: go to **Authentication → URL Configuration → Redirect URLs** and add:
+5. **Map:** run `supabase/migrations/0002_places.sql` the same way (it adds the map tables and
+   10 demo pins). Then make yourself admin by running this, with your app username:
+   ```sql
+   insert into public.admins (user_id) select id from public.profiles where username = 'YOUR_USERNAME';
+   ```
+6. **For "Forgot password?"**: go to **Authentication → URL Configuration → Redirect URLs** and add:
    - `vulcatic://**` (the installed APK)
    - `exp://**` (testing in Expo Go)
 

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vulcatic",
     "slug": "vulcatic",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -19,7 +19,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.vulcatic.app",
-      "versionCode": 2
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -46,6 +46,12 @@
             "image": "./assets/splash-icon.png",
             "backgroundColor": "#121418"
           }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Vulcatic uses your location to show vulcanizing shops near you."
         }
       ]
     ],

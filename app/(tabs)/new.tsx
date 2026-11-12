@@ -70,7 +70,7 @@ export default function NewPost() {
     addPost({ uri: image?.uri ?? null, mimeType: image?.mimeType, caption: caption.trim() });
     setImage(null);
     setCaption('');
-    router.navigate('/');
+    router.navigate('/feed');
   };
 
   const canShare = !!image || caption.trim().length > 0;

@@ -34,10 +34,20 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          headerShown: false,
+          title: 'Map',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'map' : 'map-outline'} color={color as string} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="feed"
+        options={{
           headerTitle: () => <FeedTitle />,
           tabBarLabel: 'Feed',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} color={color as string} size={size} />
+            <Ionicons name={focused ? 'images' : 'images-outline'} color={color as string} size={size} />
           ),
         }}
       />
