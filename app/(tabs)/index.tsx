@@ -1,5 +1,10 @@
 import { PostList } from '@/components/PostList';
 
 export default function Feed() {
-  return <PostList emptyText="No posts yet. Be the first to share something!" />;
+  return (
+    <PostList
+      emptyTitle="It's quiet in here…"
+      emptyMessage="No one has shared anything yet. Be the first to post a photo!"
+    />
+  );
 }

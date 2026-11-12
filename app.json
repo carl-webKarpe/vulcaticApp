@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vulcatic",
     "slug": "vulcatic",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -12,13 +12,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#D84300",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.vulcatic.app"
+      "package": "com.vulcatic.app",
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -30,10 +31,25 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Vulcatic needs access to your photos so you can share them."
+          "photosPermission": "Vulcatic needs access to your photos so you can share them.",
+          "cameraPermission": "Vulcatic needs your camera so you can take photos to share."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFF7F2",
+          "dark": {
+            "image": "./assets/splash-icon.png",
+            "backgroundColor": "#121418"
+          }
         }
       ]
     ],
-    "scheme": "vulcatic"
+    "scheme": "vulcatic",
+    "backgroundColor": "#F7F5F3"
   }
 }

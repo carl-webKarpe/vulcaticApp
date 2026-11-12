@@ -9,24 +9,27 @@ It also runs as a website.
 
 ## Features
 
-- Sign up / sign in with email + password (with a username)
-- Feed of everyone's posts (photo + caption), pull to refresh
-- Share a new post with a photo from your gallery
-- Like / unlike posts
+- Sign up / sign in with email + password (with a username), show/hide password, forgot password
+- Feed of everyone's posts (photo + caption), pull to refresh, loads more as you scroll
+- Share a post with a photo from the **camera** or **gallery**. It appears in the feed instantly
+  while it uploads, with **Try again** if the upload fails
+- Like / unlike posts, or **double-tap** a photo to like it
 - Profile page with your posts, delete your own posts, sign out
-- Light and dark mode
+- Friendly empty / error / no-internet screens with the Vulcatic gecko
+- Light and dark mode in the Vulcatic colors (orange `#D84300`, gecko green, charcoal)
 
 ## Project layout
 
 ```
 app/                    screens (Expo Router: the file name is the route)
   _layout.tsx           login gate: signed out → sign-in, signed in → tabs
-  (auth)/sign-in.tsx    sign in / sign up
+  (auth)/sign-in.tsx    sign in / sign up / forgot password
+  reset-password.tsx    choose a new password (opened from the reset email)
   (tabs)/index.tsx      feed
   (tabs)/new.tsx        new post
   (tabs)/profile.tsx    profile
-components/             PostCard, PostList, Button
-lib/                    supabase client, auth context, data functions, theme
+components/             PostCard, PostList, Button, TextField, EmptyState, SkeletonCard…
+lib/                    supabase client, auth, posts, pending uploads, theme, errors
 supabase/migrations/    database tables, security rules, storage bucket
 eas.json                build profiles (preview = APK)
 ```
@@ -40,7 +43,10 @@ eas.json                build profiles (preview = APK)
    and the `post-images` storage bucket.
 3. *(Optional, for easy testing)* **Authentication → Sign In / Providers → Email**:
    turn off **Confirm email** so new accounts can sign in right away.
-4. **Project Settings → API**: copy the **Project URL** and the **anon public** key.
+4. **Project Settings → API Keys**: copy the **Project URL** and the **publishable** (or legacy **anon**) key.
+5. **For "Forgot password?"**: go to **Authentication → URL Configuration → Redirect URLs** and add:
+   - `vulcatic://**` (the installed APK)
+   - `exp://**` (testing in Expo Go)
 
 ## 2. Run it on your computer / phone
 
