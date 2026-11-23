@@ -2,7 +2,7 @@
   "expo": {
     "name": "Vulcatic",
     "slug": "vulcatic",
-    "version": "1.5.0",
+    "version": "1.9.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -19,7 +19,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.vulcatic.app",
-      "versionCode": 9,
+      "versionCode": 15,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -46,10 +46,10 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#FFF7F2",
+          "backgroundColor": "#F8FAFC",
           "dark": {
             "image": "./assets/splash-icon.png",
-            "backgroundColor": "#121418"
+            "backgroundColor": "#0B1F2D"
           }
         }
       ],
@@ -61,7 +61,7 @@
       ]
     ],
     "scheme": "vulcatic",
-    "backgroundColor": "#F7F5F3",
+    "backgroundColor": "#F8FAFC",
     "extra": {
       "router": {
         "asyncRoutes": {

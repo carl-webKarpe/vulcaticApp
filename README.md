@@ -22,7 +22,7 @@ It also runs as a website.
 - Like / unlike posts, or **double-tap** a photo to like it
 - Profile page with your posts, delete your own posts, sign out
 - Friendly empty / error / no-internet screens with the Vulcatic gecko
-- Light and dark mode in the Vulcatic colors (orange `#D84300`, gecko green, charcoal)
+- Light and dark mode in lagoon teal, sunshine yellow, coral and gecko green
 
 ## Project layout
 

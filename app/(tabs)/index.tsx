@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import * as Location from 'expo-location';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Pulse } from '@/components/Pulse';
 import { NearRow } from '@/components/map/NearRow';
 import { PlaceCard } from '@/components/map/PlaceCard';
 import { PlacesMap, type PlacesMapHandle } from '@/components/map/PlacesMap';
@@ -15,7 +16,7 @@ import { confirm } from '@/lib/confirm';
 import { friendlyError } from '@/lib/errors';
 import { haptic } from '@/lib/haptics';
 import { deletePlace, distanceKm, isInSiargao, openStatus, SIARGAO_CENTER, usePlaces, type PlaceKind } from '@/lib/places';
-import { brand, useTheme } from '@/lib/theme';
+import { useTheme, type TintName } from '@/lib/theme';
 
 type Filter = 'all' | 'open' | PlaceKind;
 
@@ -102,7 +103,7 @@ export default function MapScreen() {
     }
   };
 
-  const chip = (key: Filter, label: string, color: string) => {
+  const chip = (key: Filter, label: string, icon: keyof typeof Ionicons.glyphMap, tint: TintName) => {
     const active = filter === key;
     return (
       <Pressable
@@ -114,13 +115,13 @@ export default function MapScreen() {
         }}
         style={[
           styles.chip,
-          { backgroundColor: active ? t.text : t.card, borderColor: active ? t.text : t.border },
+          { backgroundColor: active ? t.primary : t.card, borderColor: active ? t.primary : t.border },
         ]}
         accessibilityRole="button"
         accessibilityState={{ selected: active }}
       >
-        {(key === 'shop' || key === 'vulcator') && <View style={[styles.dot, { backgroundColor: color }]} />}
-        <Text style={[styles.chipText, { color: active ? t.card : t.text }]}>
+        <Ionicons name={icon} size={18} color={active ? t.onPrimary : t.tints[tint].fg} />
+        <Text style={[styles.chipText, { color: active ? t.onPrimary : t.text }]}>
           {label} {places ? counts[key] : ''}
         </Text>
       </Pressable>
@@ -182,10 +183,10 @@ export default function MapScreen() {
             contentContainerStyle={styles.chips}
             keyboardShouldPersistTaps="handled"
           >
-            {chip('all', 'All', t.text)}
-            {chip('shop', 'Shops', brand.orange)}
-            {chip('vulcator', 'Vulcators', brand.green)}
-            {chip('open', 'Open now', t.text)}
+            {chip('all', 'All', 'apps', 'green')}
+            {chip('shop', 'Shops', 'build', 'coral')}
+            {chip('vulcator', 'Vulcators', 'bicycle', 'green')}
+            {chip('open', 'Open now', 'flash', 'amber')}
           </ScrollView>
         )}
         {(error || mapError) && (
@@ -223,7 +224,7 @@ export default function MapScreen() {
           <View style={styles.bottom}>
             <View style={[styles.pickCard, { backgroundColor: t.card, borderColor: t.border }]}>
               <Text style={[styles.pickTitle, { color: t.text }]}>Move the map to place the pin</Text>
-              <Text style={{ color: t.muted, fontSize: 14 }}>The tip of the orange pin is your spot. Zoom in close.</Text>
+              <Text style={{ color: t.muted, fontSize: 14 }}>The tip of the big pin is your spot. Zoom in close.</Text>
               <Pressable onPress={() => locateMe()} accessibilityRole="button" style={styles.sheetHint}>
                 {locating ? <ActivityIndicator color={t.accent} /> : <Ionicons name="locate" size={20} color={t.accent} />}
                 <Text style={{ color: t.accent, fontWeight: '700', fontSize: 15 }}>Use my current location</Text>
@@ -287,7 +288,7 @@ export default function MapScreen() {
           ) : listOpen ? (
             <View style={[styles.sheet, { backgroundColor: t.card, borderColor: t.border }]}>
               <View style={styles.sheetHead}>
-                <Text style={[styles.sheetTitle, { color: t.text }]}>{me ? 'Nearest help' : 'Places'}</Text>
+                <Text style={[styles.sheetTitle, { color: t.text }]}>{me ? 'Nearest help' : 'Who can help'}</Text>
                 <Pressable onPress={() => setListOpen(false)} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close list">
                   <Ionicons name="chevron-down" size={28} color={t.text} />
                 </Pressable>
@@ -323,17 +324,21 @@ export default function MapScreen() {
             </View>
           ) : (
             <View style={styles.bottomRow} pointerEvents="box-none">
+              <View style={styles.flex}>
+              <Pulse color={t.sun} radius={30} on={!isAdmin}>
               <Pressable
                 onPress={() => {
                   setListOpen(true);
                   if (!me && !isAdmin) locateMe(false);
                 }}
                 accessibilityRole="button"
-                style={({ pressed }) => [styles.addBtn, styles.nearBtn, { backgroundColor: t.primary }, pressed && { opacity: 0.85 }]}
+                style={({ pressed }) => [styles.addBtn, styles.nearBtn, { backgroundColor: t.sun }, pressed && { opacity: 0.85 }]}
               >
-                <Ionicons name="list" size={22} color={t.onPrimary} />
-                <Text style={[styles.addText, { color: t.onPrimary }]}>{isAdmin ? 'See list' : 'Find help'}</Text>
+                <Ionicons name={isAdmin ? 'list' : 'flash'} size={24} color={t.onSun} />
+                <Text style={[styles.addText, { color: t.onSun }]}>{isAdmin ? 'See list' : 'Flat tire? Find help'}</Text>
               </Pressable>
+              </Pulse>
+              </View>
               {isAdmin && (
               <Pressable
                 onPress={() => {
@@ -365,28 +370,29 @@ const shadow = {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  flex: { flex: 1 },
   topOverlay: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 12, paddingTop: 8, gap: 10 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    padding: 10,
-    paddingRight: 12,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
+    padding: 8,
+    paddingLeft: 12,
+    paddingRight: 16,
+    borderRadius: 32,
     ...shadow,
   },
   headerIcon: { width: 40, height: 40 },
   search: { flex: 1, fontSize: 16, minHeight: 44, outlineStyle: 'none' } as object,
   chipScroll: { flexGrow: 0, marginHorizontal: -12 },
   chips: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingVertical: 4 },
-  sheet: { maxHeight: 420, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, padding: 16, ...shadow },
+  sheet: { maxHeight: 440, borderRadius: 28, borderWidth: StyleSheet.hairlineWidth, padding: 16, ...shadow },
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  sheetTitle: { fontSize: 20, fontWeight: '800' },
+  sheetTitle: { fontSize: 22, fontWeight: '800' },
   sheetHint: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48 },
   emptyText: { fontSize: 15, textAlign: 'center', paddingVertical: 24 },
   bottomRow: { flexDirection: 'row', gap: 10 },
-  nearBtn: { flex: 1, justifyContent: 'center' },
+  nearBtn: { justifyContent: 'center' },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -397,7 +403,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     ...shadow,
   },
-  dot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5, borderColor: '#fff' },
   chipText: { fontSize: 14, fontWeight: '700' },
   notice: { ...shadow, borderRadius: 12 },
   loading: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', gap: 12 },
@@ -418,12 +423,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 18,
-    height: 56,
-    borderRadius: 28,
+    height: 60,
+    borderRadius: 30,
     ...shadow,
   },
   addText: { fontSize: 16, fontWeight: '800' },
-  pickCard: { borderRadius: 20, padding: 16, gap: 4, borderWidth: StyleSheet.hairlineWidth, ...shadow },
+  pickCard: { borderRadius: 28, padding: 16, gap: 4, borderWidth: StyleSheet.hairlineWidth, ...shadow },
   pickTitle: { fontSize: 16, fontWeight: '800' },
   pickButtons: { flexDirection: 'row', gap: 10, marginTop: 12 },
   pickBtn: { flex: 1, height: 46, borderRadius: 14, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center' },

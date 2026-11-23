@@ -107,9 +107,9 @@ export default function Accounts() {
                   onPress={() => setRole(f.key)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
-                  style={[styles.chip, { backgroundColor: active ? t.text : t.card, borderColor: active ? t.text : t.border }]}
+                  style={[styles.chip, { backgroundColor: active ? t.primary : t.card, borderColor: active ? t.primary : t.border }]}
                 >
-                  <Text style={[styles.chipText, { color: active ? t.card : t.text }]}>{f.label}</Text>
+                  <Text style={[styles.chipText, { color: active ? t.onPrimary : t.text }]}>{f.label}</Text>
                 </Pressable>
               );
             })}
@@ -142,7 +142,7 @@ export default function Accounts() {
                   styles.badge,
                   p.status === 'approved'
                     ? { backgroundColor: t.successSoft, color: t.success }
-                    : { backgroundColor: t.accentSoft, color: t.accent },
+                    : { backgroundColor: t.tints.amber.bg, color: t.tints.amber.fg },
                 ]}
               >
                 {STATUS_LABEL[p.status]}
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   chips: { gap: 8 },
   chip: { height: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, justifyContent: 'center' },
   chipText: { fontSize: 14, fontWeight: '700' },
-  card: { borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 14, gap: 12 },
+  card: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, padding: 14, gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   name: { fontSize: 16, fontWeight: '800' },
   line: { fontSize: 14, marginTop: 2 },

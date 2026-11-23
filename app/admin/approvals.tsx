@@ -63,7 +63,7 @@ export default function Approvals() {
     <ScrollView contentContainerStyle={styles.container}>
       {message && <Notice kind={message.kind} text={message.text} />}
       {!waiting.accounts.length && !waiting.pins.length && (
-        <EmptyState title="All done" message="No one is waiting for approval." actionTitle="Check again" onAction={load} />
+        <EmptyState icon="checkmark-done-outline" title="All done" message="No one is waiting for approval." actionTitle="Check again" onAction={load} />
       )}
 
       {waiting.accounts.length > 0 && <Text style={heading}>New accounts ({waiting.accounts.length})</Text>}
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   loading: { marginTop: 64 },
   heading: { fontSize: 18, fontWeight: '800' },
   container: { padding: 16, gap: 16, width: '100%', maxWidth: 600, alignSelf: 'center' },
-  card: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 16, gap: 10 },
+  card: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, padding: 16, gap: 10 },
   name: { fontSize: 18, fontWeight: '800' },
   line: { fontSize: 15, lineHeight: 21 },
 });

@@ -190,6 +190,7 @@ export function PostList({ onlyUserId, header, emptyTitle, emptyMessage }: Props
       ListEmptyComponent={
         myPending.length === 0 ? (
           <EmptyState
+            icon="images-outline"
             title={emptyTitle}
             message={emptyMessage}
             actionTitle="Share a photo"

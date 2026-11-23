@@ -1,31 +1,31 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
+import { Hero, IconBadge } from '@/components/Hero';
 import { Notice } from '@/components/Notice';
 import { TextField, type TextFieldRef } from '@/components/TextField';
 import { resetPasswordRedirect, useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/lib/theme';
+import { useTheme, type TintName } from '@/lib/theme';
 import type { Role } from '@/lib/types';
 
 type Mode = 'sign-in' | 'sign-up' | 'forgot';
 
 const TITLES: Record<Mode, { title: string; subtitle: string; button: string }> = {
-  'sign-in': { title: 'Welcome back!', subtitle: 'Sign in to your Vulcatic account.', button: 'Sign in' },
+  'sign-in': { title: 'Welcome back!', subtitle: 'Flat tire? Help is just a tap away.', button: 'Sign in' },
   'sign-up': { title: 'Join Vulcatic', subtitle: 'Choose what fits you.', button: 'Create account' },
   forgot: { title: 'Forgot password?', subtitle: "Enter your email and we'll send you a reset link.", button: 'Send reset link' },
 };
 
-const ROLES: { role: Role; icon: keyof typeof Ionicons.glyphMap; title: string; hint: string }[] = [
-  { role: 'user', icon: 'person', title: 'I need help', hint: 'Find someone to fix my tire' },
-  { role: 'vulcator', icon: 'bicycle', title: 'I fix tires on the road', hint: 'I go to the customer' },
-  { role: 'shop', icon: 'build', title: 'I own a shop', hint: 'Customers come to me' },
+const ROLES: { role: Role; icon: keyof typeof Ionicons.glyphMap; tint: TintName; title: string; hint: string }[] = [
+  { role: 'user', icon: 'person', tint: 'blue', title: 'I need help', hint: 'Find someone to fix my tire' },
+  { role: 'vulcator', icon: 'bicycle', tint: 'green', title: 'I fix tires on the road', hint: 'I go to the customer' },
+  { role: 'shop', icon: 'build', tint: 'coral', title: 'I own a shop', hint: 'Customers come to me' },
 ];
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
@@ -104,18 +104,7 @@ export default function SignIn() {
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <View style={styles.container}>
-            <View style={styles.hero}>
-              <View style={[styles.glow, { backgroundColor: t.accentSoft }]} />
-              <Image
-                source={require('@/assets/images/gecko.png')}
-                style={styles.gecko}
-                contentFit="contain"
-                accessibilityLabel="Vulcatic gecko waving"
-              />
-            </View>
-            <Text style={[styles.brand, { color: t.accent }]}>Vulcatic</Text>
-            <Text style={[styles.title, { color: t.text }]}>{copy.title}</Text>
-            <Text style={[styles.subtitle, { color: t.muted }]}>{copy.subtitle}</Text>
+            <Hero gecko title={copy.title} text={copy.subtitle} />
 
             <View style={styles.form}>
               {mode === 'sign-up' && (
@@ -134,7 +123,7 @@ export default function SignIn() {
                           pressed && { opacity: 0.8 },
                         ]}
                       >
-                        <Ionicons name={r.icon} size={26} color={active ? t.accent : t.muted} />
+                        <IconBadge icon={r.icon} tint={r.tint} />
                         <View style={styles.flex}>
                           <Text style={[styles.roleTitle, { color: t.text }]}>{r.title}</Text>
                           <Text style={{ color: active ? t.text : t.muted, fontSize: 14 }}>{r.hint}</Text>
@@ -230,16 +219,10 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center' },
-  container: { padding: 24, width: '100%', maxWidth: 420, alignSelf: 'center' },
-  hero: { alignItems: 'center', justifyContent: 'center', height: 170, marginBottom: 4 },
-  glow: { position: 'absolute', width: 150, height: 150, borderRadius: 75, bottom: 0 },
-  gecko: { width: 120, height: 170 },
-  brand: { fontSize: 15, fontWeight: '800', textAlign: 'center', letterSpacing: 2, textTransform: 'uppercase' },
-  title: { fontSize: 28, fontWeight: '800', textAlign: 'center', marginTop: 4 },
-  subtitle: { textAlign: 'center', marginTop: 6, fontSize: 15, lineHeight: 21 },
+  container: { padding: 16, width: '100%', maxWidth: 420, alignSelf: 'center' },
   form: { gap: 14, marginTop: 24 },
   roles: { gap: 10 },
-  role: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2, borderRadius: 16, padding: 14, minHeight: 64 },
+  role: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2, borderRadius: 20, padding: 14, minHeight: 64 },
   roleTitle: { fontSize: 16, fontWeight: '800' },
   forgot: { alignSelf: 'flex-end', marginTop: -4 },
   switchRow: { alignItems: 'center', marginTop: 20 },

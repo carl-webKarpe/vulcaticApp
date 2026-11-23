@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Avatar } from '@/components/Avatar';
+import { IconBadge } from '@/components/Hero';
 import { callPlace, distanceKm, formatDistance, KIND_LABEL, statusLabel, type Place } from '@/lib/places';
 import { useTheme } from '@/lib/theme';
 
@@ -18,7 +20,11 @@ export function NearRow({ place, me, onPress }: Props) {
         accessibilityLabel={`${place.name}, ${KIND_LABEL[place.kind]}, ${details.join(', ')}`}
         style={({ pressed }) => [styles.main, pressed && { opacity: 0.6 }]}
       >
-        <Ionicons name={place.kind === 'shop' ? 'build' : 'bicycle'} size={24} color={place.kind === 'shop' ? t.accent : t.success} />
+        {place.photo_path ? (
+          <Avatar name={place.name} path={place.photo_path} size={48} />
+        ) : (
+          <IconBadge icon={place.kind === 'shop' ? 'build' : 'bicycle'} tint={place.kind === 'shop' ? 'coral' : 'green'} size={48} />
+        )}
         <View style={styles.text}>
           <Text style={[styles.name, { color: t.text }]} numberOfLines={1}>
             {place.name}
@@ -49,5 +55,5 @@ const styles = StyleSheet.create({
   text: { flex: 1 },
   name: { fontSize: 16, fontWeight: '700' },
   details: { fontSize: 14, marginTop: 2 },
-  call: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 48, paddingHorizontal: 14, borderRadius: 14 },
+  call: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 48, paddingHorizontal: 16, borderRadius: 24 },
 });

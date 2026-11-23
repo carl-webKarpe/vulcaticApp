@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { haptic } from '@/lib/haptics';
 import { getPlace, goesToCustomer, isInSiargao, KIND_LABEL, parsePrice, savePlace, SERVICE_KEYS, SERVICES, takesVisits, type PlaceKind, type ServiceKey } from '@/lib/places';
-import { brand, useTheme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 
 /** Add a pin (lat/lng params) or edit one (id param; lat/lng moves it). Owners edit only their own pin. */
 export default function PlaceForm() {
@@ -100,11 +100,12 @@ export default function PlaceForm() {
 
   const kindButton = (k: PlaceKind) => {
     const active = kind === k;
-    const color = k === 'shop' ? brand.orange : t.success;
+    const tint = t.tints[k === 'shop' ? 'coral' : 'green'];
+    const color = tint.fg;
     return (
       <Pressable
         onPress={() => setKind(k)}
-        style={[styles.kind, { borderColor: active ? color : t.border, backgroundColor: active ? (k === 'shop' ? t.accentSoft : t.successSoft) : t.card }]}
+        style={[styles.kind, { borderColor: active ? color : t.border, backgroundColor: active ? tint.bg : t.card }]}
         accessibilityRole="radio"
         accessibilityState={{ checked: active }}
       >
@@ -186,7 +187,7 @@ export default function PlaceForm() {
               </Text>
             )}
             {error && <Notice kind="error" text={error} />}
-            <Button title={editId ? 'Save changes' : isAdmin ? 'Add to map' : 'Send for approval'} icon="checkmark" onPress={save} loading={saving} />
+            <Button title={editId ? 'Save changes' : isAdmin ? 'Add to map' : 'Send for approval'} icon="checkmark" variant="sun" onPress={save} loading={saving} />
           </ScrollView>
         </KeyboardAvoidingView>
       )}

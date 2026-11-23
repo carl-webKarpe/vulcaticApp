@@ -116,7 +116,7 @@ export default function EditProfile() {
             : 'Your name and mobile number are private. Other people can see your photo.'}
         </Text>
         {error && <Notice kind="error" text={error} />}
-        <Button title="Save" icon="checkmark" onPress={save} loading={saving} />
+        <Button title="Save" variant="sun" icon="checkmark" onPress={save} loading={saving} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

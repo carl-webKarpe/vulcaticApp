@@ -7,13 +7,15 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
+import { Hero, IconBadge } from '@/components/Hero';
+import { Pulse } from '@/components/Pulse';
 import { Notice } from '@/components/Notice';
 import { useAuth } from '@/lib/auth';
 import { confirm } from '@/lib/confirm';
 import { friendlyError } from '@/lib/errors';
 import { haptic } from '@/lib/haptics';
 import { deletePlace, getMyPlace, isInSiargao, openStatus, patchPlace, peso, SERVICE_KEYS, SERVICES, type Place } from '@/lib/places';
-import { useTheme } from '@/lib/theme';
+import { useTheme, type TintName } from '@/lib/theme';
 
 /** Shop and Vulcator owners: switch open/available on or off, and look after their own pin. */
 export default function MyPlace() {
@@ -61,6 +63,7 @@ export default function MyPlace() {
     return (
       <View>
         <EmptyState
+          icon={profile.status === 'pending' ? 'time-outline' : 'ban-outline'}
           title={profile.status === 'pending' ? 'Waiting for approval' : 'Account suspended'}
           message={
             profile.status === 'pending'
@@ -89,6 +92,7 @@ export default function MyPlace() {
   if (!place)
     return (
       <EmptyState
+        icon="location-outline"
         title={isShop ? 'Put your shop on the map' : 'Put your service on the map'}
         message="Choose your spot, add your phone number, and an admin will check it."
         actionTitle="Choose my spot"
@@ -123,24 +127,21 @@ export default function MyPlace() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {!place.approved && (
-        <View style={[styles.waiting, { backgroundColor: t.accentSoft }]}>
-          <Ionicons name="time" size={24} color={t.accent} />
-          <Text style={[styles.waitingText, { color: t.text }]}>Waiting for approval. Customers can't see you yet.</Text>
-        </View>
-      )}
 
-      <View style={[styles.card, { backgroundColor: t.card, borderColor: t.border }]}>
+      <Hero>
         <View style={styles.photo}>
-          <Avatar name={place.name} path={profile?.avatar_url} size={84} />
+          <View style={styles.ring}>
+            <Avatar name={place.name} path={profile?.avatar_url} size={84} />
+          </View>
         </View>
-        <Text style={[styles.name, { color: t.text }]}>{place.name}</Text>
+        <Text style={[styles.name, { color: t.onHero }]}>{place.name}</Text>
         {place.approved && (
           <View style={styles.verified}>
-            <Ionicons name="shield-checkmark" size={18} color={t.success} />
-            <Text style={{ color: t.success, fontSize: 15, fontWeight: '800' }}>Verified</Text>
+            <Ionicons name="shield-checkmark" size={18} color={t.onHero} />
+            <Text style={[styles.verifiedText, { color: t.onHero }]}>Verified</Text>
           </View>
         )}
+        <Pulse color={t.sun} radius={24} on={on}>
         <Pressable
           onPress={() =>
             run('status', async () => {
@@ -154,22 +155,30 @@ export default function MyPlace() {
           accessibilityLabel={isShop ? 'Shop is open' : 'I am available'}
           style={({ pressed }) => [
             styles.toggle,
-            { backgroundColor: on ? t.successSoft : t.skeleton, borderColor: on ? t.success : t.muted },
+            { backgroundColor: on ? t.sun : t.card },
             pressed && { opacity: 0.8 },
           ]}
         >
           {busy === 'status' ? (
-            <ActivityIndicator size="large" color={t.text} />
+            <ActivityIndicator size="large" color={on ? t.onSun : t.text} />
           ) : (
-            <Ionicons name={on ? 'checkmark-circle' : 'moon'} size={44} color={on ? t.success : t.muted} />
+            <Ionicons name={on ? 'sunny' : 'moon'} size={44} color={on ? t.onSun : t.muted} />
           )}
-          <Text style={[styles.toggleText, { color: t.text }]}>{on ? onText : offText}</Text>
-          <Text style={[styles.toggleHint, { color: t.text }]}>Tap to switch to {on ? offText : onText}</Text>
+          <Text style={[styles.toggleText, { color: on ? t.onSun : t.text }]}>{on ? onText : offText}</Text>
+          <Text style={[styles.toggleHint, { color: on ? t.onSun : t.text }]}>Tap to switch to {on ? offText : onText}</Text>
         </Pressable>
-        <Text style={[styles.note, { color: t.muted }]}>
+        </Pulse>
+        <Text style={[styles.note, { color: t.onHero }]}>
           {onText} is shown for 12 hours. Switch it on again each day you work.
         </Text>
-      </View>
+      </Hero>
+
+      {!place.approved && (
+        <View style={[styles.waiting, { backgroundColor: t.accentSoft }]}>
+          <Ionicons name="time" size={24} color={t.accent} />
+          <Text style={[styles.waitingText, { color: t.text }]}>Waiting for approval. Customers can't see you yet.</Text>
+        </View>
+      )}
 
       {message && <Notice kind={message.kind} text={message.text} />}
 
@@ -183,11 +192,11 @@ export default function MyPlace() {
       )}
 
       <View style={[styles.card, { backgroundColor: t.card, borderColor: t.border }]}>
-        <Detail icon="call-outline" text={place.phone ?? 'No phone number yet'} />
-        <Detail icon="location-outline" text={place.address ?? 'No address yet'} />
-        <Detail icon="time-outline" text={place.hours ?? 'No hours yet'} />
+        <Detail icon="call" tint="green" text={place.phone ?? 'No phone number yet'} />
+        <Detail icon="location" tint="coral" text={place.address ?? 'No address yet'} />
+        <Detail icon="time" tint="blue" text={place.hours ?? 'No hours yet'} />
         {SERVICE_KEYS.filter((k) => place.prices[k]).map((k) => (
-          <Detail key={k} icon="pricetag-outline" text={`${SERVICES[k]}: ${peso(place.prices[k]!)}`} />
+          <Detail key={k} icon="pricetag" tint="amber" text={`${SERVICES[k]}: ${peso(place.prices[k]!)}`} />
         ))}
         <Button title="Edit photo & GCash" icon="camera-outline" variant="outline" onPress={() => router.push('/edit-profile')} />
         <Button
@@ -208,11 +217,11 @@ export default function MyPlace() {
   );
 }
 
-function Detail({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+function Detail({ icon, tint, text }: { icon: keyof typeof Ionicons.glyphMap; tint: TintName; text: string }) {
   const t = useTheme();
   return (
     <View style={styles.detail}>
-      <Ionicons name={icon} size={20} color={t.muted} />
+      <IconBadge icon={icon} tint={tint} size={40} />
       <Text style={[styles.detailText, { color: t.text }]}>{text}</Text>
     </View>
   );
@@ -223,11 +232,13 @@ const styles = StyleSheet.create({
   container: { padding: 16, gap: 16, width: '100%', maxWidth: 600, alignSelf: 'center', paddingBottom: 40 },
   waiting: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16 },
   waitingText: { flex: 1, fontSize: 16, fontWeight: '600', lineHeight: 22 },
-  card: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 16, gap: 12 },
+  card: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, padding: 16, gap: 12 },
   photo: { alignItems: 'center' },
   verified: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  name: { fontSize: 22, fontWeight: '800', textAlign: 'center' },
-  toggle: { borderWidth: 3, borderRadius: 20, padding: 20, alignItems: 'center', gap: 4, minHeight: 150, justifyContent: 'center' },
+  ring: { padding: 4, borderRadius: 50, backgroundColor: '#FFFFFF' },
+  verifiedText: { fontSize: 15, fontWeight: '800' },
+  name: { fontSize: 24, fontWeight: '800', textAlign: 'center' },
+  toggle: { borderRadius: 24, padding: 20, alignItems: 'center', gap: 4, minHeight: 150, justifyContent: 'center' },
   toggleText: { fontSize: 28, fontWeight: '800' },
   toggleHint: { fontSize: 15 },
   note: { fontSize: 14, lineHeight: 20, textAlign: 'center' },

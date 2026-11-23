@@ -1,13 +1,16 @@
-import { Ionicons } from '@expo/vector-icons';
+import type { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
+import { Hero, IconBadge } from '@/components/Hero';
+import { Pulse } from '@/components/Pulse';
 import { Notice } from '@/components/Notice';
 import { getReport, type Report } from '@/lib/admin';
 import { friendlyError } from '@/lib/errors';
-import { useTheme } from '@/lib/theme';
+import { useTheme, type TintName } from '@/lib/theme';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -59,34 +62,29 @@ export default function Dashboard() {
     >
       {error && <Notice kind="error" text={error} />}
 
-      <Pressable
-        onPress={() => router.navigate('/admin/approvals')}
-        accessibilityRole="button"
-        style={({ pressed }) => [
-          styles.waiting,
-          { backgroundColor: waiting ? t.accentSoft : t.successSoft },
-          pressed && { opacity: 0.8 },
-        ]}
+      <Hero
+        gecko
+        title={waiting ? `${waiting} waiting for you` : 'All done!'}
+        text={
+          waiting
+            ? `New accounts: ${report.pending_accounts}\nMap locations: ${report.pending_pins}`
+            : 'No one is waiting for approval.'
+        }
       >
-        <Ionicons name={waiting ? 'time' : 'checkmark-circle'} size={32} color={waiting ? t.accent : t.success} />
-        <View style={styles.flex}>
-          <Text style={[styles.waitingTitle, { color: t.text }]}>{waiting ? `${waiting} waiting for you` : 'All done'}</Text>
-          <Text style={[styles.waitingText, { color: t.text }]}>
-            {waiting
-              ? `New accounts: ${report.pending_accounts} · Map locations: ${report.pending_pins}`
-              : 'No one is waiting for approval.'}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color={t.text} />
-      </Pressable>
+        {waiting > 0 && (
+          <Pulse color={t.sun} radius={18}>
+            <Button title="Check now" variant="sun" icon="checkmark-done" onPress={() => router.navigate('/admin/approvals')} />
+          </Pulse>
+        )}
+      </Hero>
 
       <View style={styles.tiles}>
-        <Tile icon="person" label="Users" value={report.users} />
-        <Tile icon="bicycle" label="Vulcators" value={report.vulcators} />
-        <Tile icon="build" label="Shops" value={report.shops} />
-        <Tile icon="location" label="Live on map" value={report.live_pins} />
-        <Tile icon="checkmark-circle" label="Open now" value={report.open_now} />
-        <Tile icon="ban" label="Suspended" value={report.rejected_accounts} />
+        <Tile icon="person" tint="blue" label="Users" value={report.users} />
+        <Tile icon="bicycle" tint="green" label="Vulcators" value={report.vulcators} />
+        <Tile icon="build" tint="coral" label="Shops" value={report.shops} />
+        <Tile icon="location" tint="coral" label="Live on map" value={report.live_pins} />
+        <Tile icon="checkmark-circle" tint="green" label="Open now" value={report.open_now} />
+        <Tile icon="ban" tint="amber" label="Suspended" value={report.rejected_accounts} />
       </View>
 
       <View style={[styles.card, { backgroundColor: t.card, borderColor: t.border }]}>
@@ -116,11 +114,11 @@ export default function Dashboard() {
   );
 }
 
-function Tile({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: number }) {
+function Tile({ icon, tint, label, value }: { icon: keyof typeof Ionicons.glyphMap; tint: TintName; label: string; value: number }) {
   const t = useTheme();
   return (
     <View accessible accessibilityLabel={`${label}: ${value}`} style={[styles.tile, { backgroundColor: t.card, borderColor: t.border }]}>
-      <Ionicons name={icon} size={22} color={t.accent} />
+      <IconBadge icon={icon} tint={tint} size={40} />
       <Text style={[styles.tileValue, { color: t.text }]}>{value}</Text>
       <Text style={[styles.tileLabel, { color: t.muted }]}>{label}</Text>
     </View>
@@ -150,19 +148,16 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   loading: { marginTop: 64 },
   container: { padding: 16, gap: 16, width: '100%', maxWidth: 600, alignSelf: 'center', paddingBottom: 40 },
-  waiting: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 20, minHeight: 80 },
-  waitingTitle: { fontSize: 20, fontWeight: '800' },
-  waitingText: { fontSize: 15, marginTop: 2 },
   tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  tile: { flexGrow: 1, flexBasis: '28%', borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, padding: 14, gap: 4 },
+  tile: { flexGrow: 1, flexBasis: '28%', borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 14, gap: 4 },
   tileValue: { fontSize: 28, fontWeight: '800' },
   tileLabel: { fontSize: 14 },
-  card: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 16, gap: 12 },
-  cardTitle: { fontSize: 16, fontWeight: '800' },
+  card: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, padding: 16, gap: 12 },
+  cardTitle: { fontSize: 17, fontWeight: '800' },
   bars: { gap: 10 },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   barLabel: { width: 76, fontSize: 14 },
-  bar: { height: 12, borderTopRightRadius: 4, borderBottomRightRadius: 4 },
+  bar: { height: 14, borderTopRightRadius: 4, borderBottomRightRadius: 4 },
   barValue: { minWidth: 28, fontSize: 14, fontWeight: '700', textAlign: 'right' },
   note: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
 });

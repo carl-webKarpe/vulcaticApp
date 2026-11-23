@@ -8,14 +8,15 @@ type Props = {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: 'primary' | 'outline' | 'ghost';
+  /** sun = the one most important action on a screen. */
+  variant?: 'primary' | 'sun' | 'light' | 'outline' | 'ghost';
   icon?: keyof typeof Ionicons.glyphMap;
 };
 
 export function Button({ title, onPress, loading, disabled, variant = 'primary', icon }: Props) {
   const t = useTheme();
   const inactive = disabled || loading;
-  const color = variant === 'primary' ? t.onPrimary : variant === 'ghost' ? t.accent : t.text;
+  const color = variant === 'primary' ? t.onPrimary : variant === 'sun' ? t.onSun : variant === 'light' ? '#0A1F44' : variant === 'ghost' ? t.accent : t.text;
 
   return (
     <Pressable
@@ -26,6 +27,9 @@ export function Button({ title, onPress, loading, disabled, variant = 'primary',
       style={({ pressed }) => [
         styles.base,
         variant === 'primary' && { backgroundColor: t.primary },
+        variant === 'sun' && { backgroundColor: t.sun },
+        // White button for the deep blue and emerald headers, the same in light and dark mode.
+        variant === 'light' && { backgroundColor: '#FFFFFF' },
         variant === 'outline' && { borderWidth: 1.5, borderColor: t.border, backgroundColor: t.card },
         disabled && !loading && { opacity: 0.45 },
         pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
@@ -44,7 +48,7 @@ export function Button({ title, onPress, loading, disabled, variant = 'primary',
 }
 
 const styles = StyleSheet.create({
-  base: { height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
+  base: { height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  text: { fontSize: 16, fontWeight: '700' },
+  text: { fontSize: 16, fontWeight: '800' },
 });

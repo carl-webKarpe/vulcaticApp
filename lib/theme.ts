@@ -1,54 +1,83 @@
 import { useColorScheme } from 'react-native';
 
 /**
- * Vulcatic brand colors
- *  - Orange #D84300: everything you can tap (buttons, likes, active tab)
- *  - Gecko green #04EA24: the mascot / brand highlights
- *  - Charcoal #575E6B / #1E2127: text, surfaces, dark mode
+ * Vulcatic palette:
+ *  - Green #00C853: buttons   - Sky blue #00B4DB: headers   - Yellow #FFC107: the one most important action
+ *  - Coral #FF6B6B: shops     - Navy #0B1F2D: text, dark mode   - Light #F8FAFC: background
+ * Text on green, blue and yellow is navy: white would be too hard to read there.
  */
 export const brand = {
-  orange: '#D84300',
-  green: '#04EA24',
-  charcoal: '#575E6B',
-  ink: '#1E2127',
+  orange: '#FF6B6B',
+  green: '#00C853',
+  ink: '#0B1F2D',
 };
+
+type Tint = { bg: string; fg: string };
+export type TintName = 'green' | 'coral' | 'amber' | 'blue';
+type Gradient = [string, string, string];
 
 const light = {
   scheme: 'light' as 'light' | 'dark',
-  background: '#F7F5F3',
+  background: '#F8FAFC',
   card: '#FFFFFF',
-  text: '#1E2127',
-  muted: '#6B7079',
-  border: '#E8E4E0',
-  skeleton: '#ECE8E4',
-  /** Fill color for buttons. White text on it. */
-  primary: brand.orange,
-  onPrimary: '#FFFFFF',
-  /** Orange used for text and icons (links, liked heart). */
-  accent: '#BF3B00',
-  accentSoft: '#FCE9DF',
-  success: '#0B7A22',
-  successSoft: '#E3F9E7',
+  text: '#0B1F2D',
+  muted: '#4A6072',
+  border: '#D5E6EF',
+  skeleton: '#E4EFF5',
+  /** Fill color for buttons, with onPrimary text. */
+  primary: '#00C853',
+  onPrimary: '#0B1F2D',
+  /** Green dark enough for text and icons (links). */
+  accent: '#00713A',
+  accentSoft: '#D3F8E1',
+  sun: '#FFC107',
+  onSun: '#0B1F2D',
+  success: '#00713A',
+  successSoft: '#D3F8E1',
   danger: '#C62828',
-  dangerSoft: '#FDECEC',
+  dangerSoft: '#FFE9E9',
+  /** Big colored headers, with onHero text. */
+  hero: ['#5AD8F5', '#00B4DB', '#00C853'] as Gradient,
+  onHero: '#0B1F2D',
+  /** Moving island scene. */
+  sky: ['#2E9BEA', '#5CD0F8', '#C9F3FF'] as Gradient,
+  sea: ['#00B4DB', '#12CDBF'],
+  tints: {
+    green: { bg: '#D3F8E1', fg: '#00713A' },
+    coral: { bg: '#FFE1E1', fg: '#A82A2A' },
+    amber: { bg: '#FFF1C2', fg: '#7A5200' },
+    blue: { bg: '#D3F1FB', fg: '#00587A' },
+  } as Record<TintName, Tint>,
 };
 
 const dark: typeof light = {
   scheme: 'dark',
-  background: '#121418',
-  card: '#1E2127',
-  text: '#F3F4F6',
-  muted: '#9AA0AA',
-  border: '#2C3038',
-  skeleton: '#2A2E36',
-  primary: brand.orange,
-  onPrimary: '#FFFFFF',
-  accent: '#FF7A3D',
-  accentSoft: '#3A2216',
-  success: '#3BE05A',
-  successSoft: '#163A20',
-  danger: '#F87171',
-  dangerSoft: '#3A1A1A',
+  background: '#0B1F2D',
+  card: '#12304A',
+  text: '#F8FAFC',
+  muted: '#A9C2D2',
+  border: '#22486A',
+  skeleton: '#1A3D5C',
+  primary: '#00C853',
+  onPrimary: '#0B1F2D',
+  accent: '#3DEB8B',
+  accentSoft: '#0E4A3A',
+  sun: '#FFC107',
+  onSun: '#0B1F2D',
+  success: '#3DEB8B',
+  successSoft: '#0E4A3A',
+  danger: '#FF9A9A',
+  dangerSoft: '#4A2430',
+  hero: ['#0A4A78', '#07607E', '#0A6B4E'],
+  onHero: '#F8FAFC',
+  sky: ['#06263F', '#0A4A78', '#1177A0'],
+  sea: ['#075E86', '#0A7A86'],
+  tints: {
+    green: { bg: '#0E4A3A', fg: '#3DEB8B' },
+    coral: { bg: '#52273A', fg: '#FFABAB' },
+    amber: { bg: '#4A3C10', fg: '#FFD454' },
+    blue: { bg: '#0D4668', fg: '#6FDDF7' },
+  },
 };
 
 export type Theme = typeof light;

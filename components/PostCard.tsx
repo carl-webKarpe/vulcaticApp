@@ -118,7 +118,7 @@ export function PostCard({ post, onToggleLike, onDelete }: Props) {
             <Ionicons
               name={post.likedByMe ? 'heart' : 'heart-outline'}
               size={26}
-              color={post.likedByMe ? t.accent : t.text}
+              color={post.likedByMe ? t.danger : t.text}
             />
           </Animated.View>
           <Text style={[styles.likeCount, { color: t.text }]}>

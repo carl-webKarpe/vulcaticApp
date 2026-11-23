@@ -18,7 +18,7 @@ type Props = {
 export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Props) {
   const t = useTheme();
   const isShop = place.kind === 'shop';
-  const kindColor = isShop ? t.accent : t.success;
+  const tint = t.tints[isShop ? 'coral' : 'green'];
   const phone = place.phone;
   const status = statusLabel(place);
   const photo = avatarUrl(place.photo_path);
@@ -41,8 +41,8 @@ export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Pro
             {place.name}
           </Text>
           <View style={styles.badges}>
-            <View style={[styles.badge, { backgroundColor: isShop ? t.accentSoft : t.successSoft }]}>
-              <Text style={[styles.badgeText, { color: kindColor }]}>
+            <View style={[styles.badge, { backgroundColor: tint.bg }]}>
+              <Text style={[styles.badgeText, { color: tint.fg }]}>
                 {KIND_LABEL[place.kind]}
               </Text>
             </View>
@@ -87,10 +87,10 @@ export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Pro
         {phone ? (
           <Pressable
             onPress={() => callPlace(phone)}
-            style={({ pressed }) => [styles.action, { backgroundColor: t.primary }, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.action, { backgroundColor: t.sun }, pressed && styles.pressed]}
           >
-            <Ionicons name="call" size={18} color={t.onPrimary} />
-            <Text style={[styles.actionText, { color: t.onPrimary }]}>Call</Text>
+            <Ionicons name="call" size={18} color={t.onSun} />
+            <Text style={[styles.actionText, { color: t.onSun }]}>Call now</Text>
           </Pressable>
         ) : null}
         <Pressable
@@ -135,7 +135,7 @@ function Row({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: strin
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 22,
+    borderRadius: 28,
     borderWidth: StyleSheet.hairlineWidth,
     padding: 16,
     gap: 12,
@@ -146,10 +146,10 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   top: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  icon: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  icon: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   gecko: { width: 40, height: 40, marginTop: 6 },
   titleWrap: { flex: 1, gap: 6 },
-  name: { fontSize: 18, fontWeight: '800' },
+  name: { fontSize: 20, fontWeight: '800' },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   badgeText: { fontSize: 12, fontWeight: '800' },
@@ -162,14 +162,14 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 10 },
   action: {
     flex: 1,
-    height: 52,
-    borderRadius: 14,
+    height: 54,
+    borderRadius: 27,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  actionText: { fontSize: 15, fontWeight: '700' },
+  actionText: { fontSize: 16, fontWeight: '800' },
   pressed: { opacity: 0.8 },
   admin: { flexDirection: 'row', alignItems: 'center', gap: 18, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 12 },
   adminLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1, flex: 1 },

@@ -4,6 +4,7 @@ import { router, Tabs } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { TabIcon, tabScreenOptions } from '@/components/TabIcon';
 import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
 
@@ -30,26 +31,14 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: t.accent,
-        tabBarInactiveTintColor: t.muted,
-        tabBarStyle: { backgroundColor: t.card, borderTopColor: t.border, height: 64, paddingTop: 6 },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
-        headerStyle: { backgroundColor: t.card },
-        headerTitleStyle: { color: t.text, fontWeight: '800', fontSize: 18 },
-        headerTitleAlign: 'center',
-        headerShadowVisible: false,
-        sceneStyle: { backgroundColor: t.background },
-      }}
+      screenOptions={tabScreenOptions(t)}
     >
       <Tabs.Screen
         name="index"
         options={{
           headerShown: false,
           title: 'Map',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'map' : 'map-outline'} color={color as string} size={size} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon name="map" focused={focused} />,
         }}
       />
       <Tabs.Protected guard={isOwner}>
@@ -57,22 +46,14 @@ export default function TabsLayout() {
           name="my-place"
           options={{
             title: role === 'shop' ? 'My shop' : 'My service',
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons
-                name={role === 'shop' ? (focused ? 'build' : 'build-outline') : focused ? 'bicycle' : 'bicycle-outline'}
-                color={color as string}
-                size={size}
-              />
-            ),
+            tabBarIcon: ({ focused }) => <TabIcon name={role === 'shop' ? 'build' : 'bicycle'} focused={focused} />,
           }}
         />
         <Tabs.Screen
           name="work"
           options={{
             title: 'Work',
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons name={focused ? 'briefcase' : 'briefcase-outline'} color={color as string} size={size} />
-            ),
+            tabBarIcon: ({ focused }) => <TabIcon name="briefcase" focused={focused} />,
           }}
         />
       </Tabs.Protected>
@@ -86,16 +67,14 @@ export default function TabsLayout() {
               onPress={() => router.navigate('/new')}
               accessibilityRole="button"
               accessibilityLabel="Share a new post"
-              style={({ pressed }) => [styles.postButton, { backgroundColor: t.primary }, pressed && { opacity: 0.8 }]}
+              style={({ pressed }) => [styles.postButton, { backgroundColor: t.sun }, pressed && { opacity: 0.8 }]}
             >
-              <Ionicons name="add" size={20} color={t.onPrimary} />
-              <Text style={{ color: t.onPrimary, fontWeight: '700', fontSize: 15 }}>Post</Text>
+              <Ionicons name="add" size={20} color={t.onSun} />
+              <Text style={{ color: t.onSun, fontWeight: '800', fontSize: 15 }}>Post</Text>
             </Pressable>
           ),
           tabBarLabel: 'Feed',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'images' : 'images-outline'} color={color as string} size={size} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon name="images" focused={focused} />,
         }}
       />
       <Tabs.Screen
@@ -110,9 +89,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: session ? 'Profile' : 'Account',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} color={color as string} size={size} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon name="person" focused={focused} />,
         }}
       />
     </Tabs>

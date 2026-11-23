@@ -99,6 +99,8 @@ export function buildMapHtml() {
     '<g fill="#5b616c"><rect x="11" y="2" width="2" height="2.4" rx=".6"/><rect x="11" y="19.6" width="2" height="2.4" rx=".6"/>' +
     '<rect x="2" y="11" width="2.4" height="2" rx=".6"/><rect x="19.6" y="11" width="2.4" height="2" rx=".6"/></g></svg>';
 
+  var WRENCH = '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="' + C.green + '" d="M22.7 19 13.6 9.9c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>';
+
   function pinSvg(color) {
     return '<svg viewBox="0 0 44 54" width="44" height="54"><path d="M22 53c-1.2 0-13.5-15.6-17.6-23.4C2.8 26.7 2 23.9 2 21 2 9.95 10.95 1 22 1s20 8.95 20 20c0 2.9-.8 5.7-2.4 8.6C35.5 37.4 23.2 53 22 53z" fill="' +
       color + '" stroke="#fff" stroke-width="2"/></svg>';

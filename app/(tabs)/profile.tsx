@@ -1,15 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
-import { EmptyState } from '@/components/EmptyState';
+import { Hero, IconBadge } from '@/components/Hero';
 import { PostList } from '@/components/PostList';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/lib/theme';
+import { useTheme, type TintName } from '@/lib/theme';
 import { ROLE_LABEL } from '@/lib/types';
 
 function Version() {
@@ -35,49 +35,43 @@ export default function Profile() {
 
   if (!session)
     return (
-      <View>
-        <EmptyState
-          title="You're using Vulcatic as a guest"
-          message="Sign in to post, or to list your shop or mobile service on the map."
-          actionTitle="Sign in or join"
-          onAction={() => router.push('/sign-in')}
-        />
+      <ScrollView contentContainerStyle={styles.page}>
+        <Hero gecko title="Stuck on the road?" text="You can find and call help without an account.">
+          <Button title="Sign in or join" variant="sun" icon="person-add" onPress={() => router.push('/sign-in')} />
+        </Hero>
+        <Perk icon="images" tint="blue" title="Share with riders" text="Post photos and road tips in the feed." />
+        <Perk icon="bicycle" tint="green" title="Fix tires on the road?" text="Join as a Vulcator and get on the map." />
+        <Perk icon="build" tint="coral" title="Own a vulcanizing shop?" text="Let customers find your shop." />
         <Version />
-      </View>
+      </ScrollView>
     );
 
   const username = profile?.username ?? '';
 
   const header = (
-    <View style={[styles.header, { backgroundColor: t.card, borderColor: t.border }]}>
-      <View style={[styles.banner, { backgroundColor: t.primary }]} />
-      <View style={[styles.avatarRing, { backgroundColor: t.card }]}>
-        <Avatar name={username || '?'} path={profile?.avatar_url} size={84} />
+    <View style={styles.header}>
+      <Hero>
+        <View style={styles.person}>
+          <View style={styles.avatarRing}>
+            <Avatar name={username || '?'} path={profile?.avatar_url} size={92} />
+          </View>
+          <Text style={[styles.username, { color: t.onHero }]}>{username ? `@${username}` : ' '}</Text>
+          <Text style={[styles.email, { color: t.onHero }]}>{session?.user.email}</Text>
+          {profile && <Text style={[styles.role, { backgroundColor: t.sun, color: t.onSun }]}>{isAdmin ? 'Admin' : ROLE_LABEL[profile.role]}</Text>}
+        </View>
+      </Hero>
+      <View style={[styles.menu, { backgroundColor: t.card, borderColor: t.border }]}>
+        <Row icon="create" tint="green" title="Edit profile" onPress={() => router.push('/edit-profile')} />
+        <Row icon="lock-closed" tint="blue" title="Change password" onPress={() => router.push('/change-password')} />
+        <Row icon="log-out" tint="coral" title="Sign out" onPress={confirmSignOut} />
       </View>
-      <Text style={[styles.username, { color: t.text }]}>{username ? `@${username}` : ' '}</Text>
-      <Text style={[styles.email, { color: t.muted }]}>{session?.user.email}</Text>
-      {profile && <Text style={[styles.email, { color: t.text }]}>{isAdmin ? 'Admin' : ROLE_LABEL[profile.role]}</Text>}
-      <View style={styles.adminBtn}>
-        <Button title="Edit profile" icon="create-outline" onPress={() => router.push('/edit-profile')} />
-      </View>
-      <View style={styles.adminBtn}>
-        <Button title="Change password" icon="lock-closed-outline" variant="outline" onPress={() => router.push('/change-password')} />
-      </View>
-      <Pressable
-        accessibilityRole="button"
-        onPress={confirmSignOut}
-        style={({ pressed }) => [styles.signOut, { borderColor: t.border }, pressed && { opacity: 0.7 }]}
-      >
-        <Ionicons name="log-out-outline" size={18} color={t.text} />
-        <Text style={[styles.signOutText, { color: t.text }]}>Sign out</Text>
-      </Pressable>
       <Version />
       {!isAdmin && <Text style={[styles.sectionTitle, { color: t.text }]}>My posts</Text>}
     </View>
   );
 
   // Admins have no feed, so no posts to list.
-  if (isAdmin) return <View style={styles.adminPage}>{header}</View>;
+  if (isAdmin) return <ScrollView contentContainerStyle={styles.page}>{header}</ScrollView>;
 
   return (
     <PostList
@@ -89,32 +83,47 @@ export default function Profile() {
   );
 }
 
+type Item = { icon: keyof typeof Ionicons.glyphMap; tint: TintName; title: string };
+
+function Row({ icon, tint, title, onPress }: Item & { onPress: () => void }) {
+  const t = useTheme();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.row, pressed && { opacity: 0.6 }]}>
+      <IconBadge icon={icon} tint={tint} />
+      <Text style={[styles.rowTitle, { color: t.text }]}>{title}</Text>
+      <Ionicons name="chevron-forward" size={20} color={t.muted} />
+    </Pressable>
+  );
+}
+
+function Perk({ icon, tint, title, text }: Item & { text: string }) {
+  const t = useTheme();
+  return (
+    <View style={[styles.perk, { backgroundColor: t.card, borderColor: t.border }]}>
+      <IconBadge icon={icon} tint={tint} />
+      <View style={styles.flex}>
+        <Text style={[styles.perkTitle, { color: t.text }]}>{title}</Text>
+        <Text style={[styles.perkText, { color: t.muted }]}>{text}</Text>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  header: {
-    alignItems: 'center',
-    paddingBottom: 18,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  banner: { alignSelf: 'stretch', height: 70 },
-  avatarRing: { padding: 4, borderRadius: 50, marginTop: -46 },
-  username: { fontSize: 22, fontWeight: '800', marginTop: 8 },
-  email: { fontSize: 14, marginTop: 2 },
-  signOut: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 48,
-    marginTop: 14,
-  },
-  adminPage: { padding: 16 },
-  adminBtn: { marginTop: 14 },
-  version: { fontSize: 13, textAlign: 'center', marginTop: 12 },
-  signOutText: { fontWeight: '600' },
-  sectionTitle: { alignSelf: 'flex-start', marginLeft: 16, marginTop: 18, fontSize: 16, fontWeight: '800' },
+  flex: { flex: 1 },
+  page: { padding: 16, gap: 12, width: '100%', maxWidth: 600, alignSelf: 'center', paddingBottom: 40 },
+  header: { gap: 16, marginBottom: 16 },
+  person: { alignItems: 'center' },
+  avatarRing: { padding: 4, borderRadius: 60, backgroundColor: '#FFFFFF' },
+  username: { fontSize: 24, fontWeight: '800', marginTop: 10 },
+  email: { fontSize: 15, marginTop: 2 },
+  role: { fontSize: 13, fontWeight: '800', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, overflow: 'hidden', marginTop: 10 },
+  menu: { borderRadius: 24, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 64 },
+  rowTitle: { flex: 1, fontSize: 16, fontWeight: '700' },
+  perk: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 20, borderWidth: 1, padding: 16 },
+  perkTitle: { fontSize: 16, fontWeight: '800' },
+  perkText: { fontSize: 14, lineHeight: 20, marginTop: 2 },
+  version: { fontSize: 13, textAlign: 'center' },
+  sectionTitle: { fontSize: 18, fontWeight: '800' },
 });

@@ -1,6 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
+import { TabIcon, tabScreenOptions } from '@/components/TabIcon';
 import { useTheme } from '@/lib/theme';
 
 const TABS: { name: string; title: string; label?: string; icon: 'grid' | 'checkmark-done' | 'people' | 'map' | 'person' }[] = [
@@ -16,17 +16,7 @@ export default function AdminLayout() {
   const t = useTheme();
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: t.accent,
-        tabBarInactiveTintColor: t.muted,
-        tabBarStyle: { backgroundColor: t.card, borderTopColor: t.border, height: 64, paddingTop: 6 },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
-        headerStyle: { backgroundColor: t.card },
-        headerTitleStyle: { color: t.text, fontWeight: '800', fontSize: 18 },
-        headerTitleAlign: 'center',
-        headerShadowVisible: false,
-        sceneStyle: { backgroundColor: t.background },
-      }}
+      screenOptions={tabScreenOptions(t)}
     >
       {TABS.map(({ name, title, label, icon }) => (
         <Tabs.Screen
@@ -36,9 +26,7 @@ export default function AdminLayout() {
             title,
             tabBarLabel: label ?? title,
             headerShown: name !== 'map',
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons name={focused ? icon : `${icon}-outline`} color={color as string} size={size} />
-            ),
+            tabBarIcon: ({ focused }) => <TabIcon name={icon} focused={focused} />,
           }}
         />
       ))}

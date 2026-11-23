@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
+import { Intro } from '@/components/Intro';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { PendingPostsProvider } from '@/lib/pending';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -87,6 +88,12 @@ function RootNavigator() {
   );
 }
 
+/** Waits until the splash screen is gone, so no one misses the start. */
+function OpeningIntro() {
+  const { loading } = useAuth();
+  return <Intro play={!loading || !isSupabaseConfigured} />;
+}
+
 export default function RootLayout() {
   const t = useTheme();
   return (
@@ -94,6 +101,7 @@ export default function RootLayout() {
       <PendingPostsProvider>
         <StatusBar style={t.scheme === 'dark' ? 'light' : 'dark'} />
         <RootNavigator />
+        <OpeningIntro />
       </PendingPostsProvider>
     </AuthProvider>
   );

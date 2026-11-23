@@ -68,12 +68,12 @@ export const TextField = forwardRef<TextFieldRef, Props>(function TextField(
 
 const styles = StyleSheet.create({
   wrap: { gap: 6 },
-  label: { fontSize: 13, fontWeight: '600', marginLeft: 2 },
+  label: { fontSize: 14, fontWeight: '700', marginLeft: 2 },
   box: {
     height: 52,
     borderWidth: 1.5,
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    borderRadius: 18,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
