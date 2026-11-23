@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { Notice } from '@/components/Notice';
@@ -11,13 +12,13 @@ import { useAuth } from '@/lib/auth';
 import { confirm } from '@/lib/confirm';
 import { friendlyError } from '@/lib/errors';
 import { haptic } from '@/lib/haptics';
-import { deletePlace, getMyPlace, isInSiargao, openStatus, patchPlace, type Place } from '@/lib/places';
+import { deletePlace, getMyPlace, isInSiargao, openStatus, patchPlace, peso, SERVICE_KEYS, SERVICES, type Place } from '@/lib/places';
 import { useTheme } from '@/lib/theme';
 
 /** Shop and Vulcator owners: switch open/available on or off, and look after their own pin. */
 export default function MyPlace() {
   const t = useTheme();
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const userId = profile?.id;
   const isShop = profile?.role === 'shop';
   const [place, setPlace] = useState<Place | null | undefined>(undefined);
@@ -55,6 +56,29 @@ export default function MyPlace() {
     }
   };
 
+  // A Vulcator or shop account needs the admin's OK before it can choose a spot.
+  if (profile && profile.status !== 'approved')
+    return (
+      <View>
+        <EmptyState
+          title={profile.status === 'pending' ? 'Waiting for approval' : 'Account suspended'}
+          message={
+            profile.status === 'pending'
+              ? 'An admin is checking your account. After that, you can choose your spot on the map.'
+              : "You can't use this screen right now. Please contact the Vulcatic admin."
+          }
+          actionTitle="Check again"
+          onAction={() => run('check', async () => (await refreshProfile(), null))}
+        />
+        {busy === 'check' && <ActivityIndicator color={t.accent} />}
+        {message && (
+          <View style={styles.container}>
+            <Notice kind={message.kind} text={message.text} />
+          </View>
+        )}
+      </View>
+    );
+
   if (place === undefined)
     return message ? (
       <EmptyState title="Couldn't load" message={message.text} actionTitle="Try again" onAction={load} />
@@ -80,7 +104,7 @@ export default function MyPlace() {
     run('location', async () => {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (!perm.granted) throw new Error('Allow location access, then try again.');
-      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       if (!isInSiargao(coords.latitude, coords.longitude))
         throw new Error("You're not on Siargao right now, so your pin was not moved.");
       setPlace(await patchPlace(place.id, { lat: coords.latitude, lng: coords.longitude }));
@@ -107,7 +131,16 @@ export default function MyPlace() {
       )}
 
       <View style={[styles.card, { backgroundColor: t.card, borderColor: t.border }]}>
+        <View style={styles.photo}>
+          <Avatar name={place.name} path={profile?.avatar_url} size={84} />
+        </View>
         <Text style={[styles.name, { color: t.text }]}>{place.name}</Text>
+        {place.approved && (
+          <View style={styles.verified}>
+            <Ionicons name="shield-checkmark" size={18} color={t.success} />
+            <Text style={{ color: t.success, fontSize: 15, fontWeight: '800' }}>Verified</Text>
+          </View>
+        )}
         <Pressable
           onPress={() =>
             run('status', async () => {
@@ -153,8 +186,12 @@ export default function MyPlace() {
         <Detail icon="call-outline" text={place.phone ?? 'No phone number yet'} />
         <Detail icon="location-outline" text={place.address ?? 'No address yet'} />
         <Detail icon="time-outline" text={place.hours ?? 'No hours yet'} />
+        {SERVICE_KEYS.filter((k) => place.prices[k]).map((k) => (
+          <Detail key={k} icon="pricetag-outline" text={`${SERVICES[k]}: ${peso(place.prices[k]!)}`} />
+        ))}
+        <Button title="Edit photo & GCash" icon="camera-outline" variant="outline" onPress={() => router.push('/edit-profile')} />
         <Button
-          title="Edit details"
+          title="Edit details & prices"
           icon="create-outline"
           variant="outline"
           onPress={() => router.push({ pathname: '/place-form', params: { id: String(place.id) } })}
@@ -187,6 +224,8 @@ const styles = StyleSheet.create({
   waiting: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 16 },
   waitingText: { flex: 1, fontSize: 16, fontWeight: '600', lineHeight: 22 },
   card: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 16, gap: 12 },
+  photo: { alignItems: 'center' },
+  verified: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   name: { fontSize: 22, fontWeight: '800', textAlign: 'center' },
   toggle: { borderWidth: 3, borderRadius: 20, padding: 20, alignItems: 'center', gap: 4, minHeight: 150, justifyContent: 'center' },
   toggleText: { fontSize: 28, fontWeight: '800' },

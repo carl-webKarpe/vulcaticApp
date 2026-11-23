@@ -10,10 +10,11 @@ import { NearRow } from '@/components/map/NearRow';
 import { PlaceCard } from '@/components/map/PlaceCard';
 import { PlacesMap, type PlacesMapHandle } from '@/components/map/PlacesMap';
 import { Notice } from '@/components/Notice';
+import { useAuth } from '@/lib/auth';
 import { confirm } from '@/lib/confirm';
 import { friendlyError } from '@/lib/errors';
 import { haptic } from '@/lib/haptics';
-import { deletePlace, distanceKm, isInSiargao, openStatus, SIARGAO_CENTER, useIsAdmin, usePlaces, type PlaceKind } from '@/lib/places';
+import { deletePlace, distanceKm, isInSiargao, openStatus, SIARGAO_CENTER, usePlaces, type PlaceKind } from '@/lib/places';
 import { brand, useTheme } from '@/lib/theme';
 
 type Filter = 'all' | 'open' | PlaceKind;
@@ -22,7 +23,7 @@ export default function MapScreen() {
   const t = useTheme();
   const map = useRef<PlacesMapHandle>(null);
   const { places, error, reload } = usePlaces();
-  const isAdmin = useIsAdmin();
+  const { isAdmin, profile } = useAuth();
 
   const [filter, setFilter] = useState<Filter>('all');
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -77,11 +78,11 @@ export default function MapScreen() {
         showToast('Allow location access to see where you are on the map.');
         return;
       }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       const here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       setMe(here);
       if (!isInSiargao(here.lat, here.lng)) showToast("You're not on Siargao right now, so the map stays on the island.");
-      else if (move) map.current?.focus(here.lat, here.lng, 14.5);
+      else if (move) map.current?.focus(here.lat, here.lng, picking ? 17 : 14.5);
     } catch (e) {
       showToast(friendlyError(e));
     } finally {
@@ -134,6 +135,7 @@ export default function MapScreen() {
         places={shown}
         selectedId={selectedId}
         me={me}
+        mePhoto={profile?.avatar_url}
         picking={picking}
         onSelect={(id) => {
           if (picking) return;
@@ -218,13 +220,14 @@ export default function MapScreen() {
       {/* Admins and owners: choose a spot by moving the map under the center pin */}
       {picking && (
         <>
-          <View style={styles.crosshair} pointerEvents="none">
-            <Ionicons name="location" size={48} color={brand.orange} style={styles.crosshairIcon} />
-          </View>
           <View style={styles.bottom}>
             <View style={[styles.pickCard, { backgroundColor: t.card, borderColor: t.border }]}>
               <Text style={[styles.pickTitle, { color: t.text }]}>Move the map to place the pin</Text>
-              <Text style={{ color: t.muted, fontSize: 13 }}>Zoom in close for an exact spot.</Text>
+              <Text style={{ color: t.muted, fontSize: 14 }}>The tip of the orange pin is your spot. Zoom in close.</Text>
+              <Pressable onPress={() => locateMe()} accessibilityRole="button" style={styles.sheetHint}>
+                {locating ? <ActivityIndicator color={t.accent} /> : <Ionicons name="locate" size={20} color={t.accent} />}
+                <Text style={{ color: t.accent, fontWeight: '700', fontSize: 15 }}>Use my current location</Text>
+              </Pressable>
               <View style={styles.pickButtons}>
                 <Pressable onPress={stopPicking} style={[styles.pickBtn, { borderColor: t.border, borderWidth: 1.5 }]}>
                   <Text style={{ color: t.text, fontWeight: '700' }}>Cancel</Text>
@@ -323,13 +326,13 @@ export default function MapScreen() {
               <Pressable
                 onPress={() => {
                   setListOpen(true);
-                  if (!me) locateMe(false);
+                  if (!me && !isAdmin) locateMe(false);
                 }}
                 accessibilityRole="button"
                 style={({ pressed }) => [styles.addBtn, styles.nearBtn, { backgroundColor: t.primary }, pressed && { opacity: 0.85 }]}
               >
                 <Ionicons name="list" size={22} color={t.onPrimary} />
-                <Text style={[styles.addText, { color: t.onPrimary }]}>Find help</Text>
+                <Text style={[styles.addText, { color: t.onPrimary }]}>{isAdmin ? 'See list' : 'Find help'}</Text>
               </Pressable>
               {isAdmin && (
               <Pressable
@@ -420,8 +423,6 @@ const styles = StyleSheet.create({
     ...shadow,
   },
   addText: { fontSize: 16, fontWeight: '800' },
-  crosshair: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
-  crosshairIcon: { marginTop: -48, textShadowColor: 'rgba(0,0,0,0.3)', textShadowRadius: 6 },
   pickCard: { borderRadius: 20, padding: 16, gap: 4, borderWidth: StyleSheet.hairlineWidth, ...shadow },
   pickTitle: { fontSize: 16, fontWeight: '800' },
   pickButtons: { flexDirection: 'row', gap: 10, marginTop: 12 },

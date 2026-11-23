@@ -43,13 +43,20 @@ export function buildMapHtml() {
 <style>
   html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #dfe9ef; }
   body { font-family: -apple-system, system-ui, Roboto, 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
-  .pin { position: relative; width: 44px; height: 54px; cursor: pointer; transition: transform .18s ease; transform-origin: 50% 100%; }
-  .pin > svg { position: absolute; inset: 0; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
+  /* No position or transform here: MapLibre uses both to place the pin exactly. */
+  .pin { width: 44px; height: 54px; cursor: pointer; }
+  .body { position: absolute; inset: 0; transition: transform .18s ease; transform-origin: 50% 98%; }
+  .body > svg { position: absolute; inset: 0; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
   .pin .face svg { display: block; }
   .pin .face { position: absolute; left: 7px; top: 6px; width: 30px; height: 30px; border-radius: 50%; background: #fff;
                display: flex; align-items: center; justify-content: center; overflow: hidden; }
   .pin .face img { width: 30px; height: 30px; object-fit: contain; margin-top: 4px; }
-  .pin.selected { transform: scale(1.3); z-index: 5; }
+  .pin.selected { z-index: 5; }
+  .pin.selected .body { transform: scale(1.3); }
+  .pin .face img.photo { width: 100%; height: 100%; object-fit: cover; margin: 0; }
+  #cross { display: none; position: absolute; left: 50%; top: 50%; width: 44px; height: 54px; margin: -53px 0 0 -22px; pointer-events: none; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
+  body.picking #cross { display: block; }
+  .me.photo { width: 40px; height: 40px; box-sizing: border-box; background-size: cover; background-position: center; }
   .pin.dim { opacity: .55; }
   .label { position: absolute; top: 55px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 11px; font-weight: 700;
            color: ${brand.ink}; background: rgba(255,255,255,.92); padding: 2px 6px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.2);
@@ -58,7 +65,7 @@ export function buildMapHtml() {
   .open-dot { position: absolute; right: 1px; top: 1px; width: 11px; height: 11px; border-radius: 50%; background: #0B7A22; border: 2px solid #fff; }
   .cluster { width: 46px; height: 46px; border-radius: 50%; background: ${brand.ink}; color: #fff; border: 3px solid #fff; box-sizing: border-box;
              display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; box-shadow: 0 3px 8px rgba(0,0,0,.35); cursor: pointer; }
-  @media (prefers-reduced-motion: reduce) { .me { animation: none !important; } .pin { transition: none !important; } }
+  @media (prefers-reduced-motion: reduce) { .me { animation: none !important; } .body { transition: none !important; } }
   .me { width: 18px; height: 18px; border-radius: 50%; background: #1A73E8; border: 3px solid #fff; box-shadow: 0 0 0 0 rgba(26,115,232,.5);
         animation: pulse 2s infinite; }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(26,115,232,.5); } 70% { box-shadow: 0 0 0 16px rgba(26,115,232,0); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232,0); } }
@@ -70,6 +77,7 @@ export function buildMapHtml() {
 </head>
 <body>
 <div id="map"></div>
+<div id="cross"></div>
 <div id="fail">Couldn't load the map.<br/>Check your internet connection.</div>
 <script>
 (function () {
@@ -103,6 +111,8 @@ export function buildMapHtml() {
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
   map.dragRotate.disable();
   map.touchZoomRotate.disableRotation();
+
+  document.getElementById('cross').innerHTML = pinSvg(C.orange);
 
   var markers = {}; // id -> { marker, el, place }
   var clusters = [];
@@ -158,10 +168,13 @@ export function buildMapHtml() {
     var isShop = p.kind === 'shop';
     el.className = 'pin';
     asButton(el, p.name);
-    el.innerHTML = pinSvg(isShop ? C.orange : C.green) +
-      '<div class="face">' + (isShop ? TIRE : '<img src="' + C.gecko + '" alt=""/>') + '</div>' +
+    var plain = isShop ? TIRE : '<img src="' + C.gecko + '" alt=""/>';
+    el.innerHTML = '<div class="body">' + pinSvg(isShop ? C.orange : C.green) +
+      '<div class="face">' + (p.photo ? '<img class="photo" src="' + esc(p.photo) + '" alt=""/>' : plain) + '</div>' +
       (p.open === true ? '<div class="open-dot"></div>' : '') +
-      '<div class="label">' + esc(p.name) + '</div>';
+      '<div class="label">' + esc(p.name) + '</div></div>';
+    var img = el.querySelector('img.photo');
+    if (img) img.onerror = function () { img.parentNode.innerHTML = plain; };
     el.addEventListener('click', function (ev) { ev.stopPropagation(); if (!picking) send({ type: 'select', id: p.id }); });
     return el;
   }
@@ -171,10 +184,10 @@ export function buildMapHtml() {
     list.forEach(function (p) {
       seen[p.id] = true;
       var m = markers[p.id];
-      if (m && (m.place.kind !== p.kind || m.place.name !== p.name || m.place.open !== p.open)) { m.marker.remove(); m = null; }
+      if (m && (m.place.kind !== p.kind || m.place.name !== p.name || m.place.open !== p.open || m.place.photo !== p.photo)) { m.marker.remove(); m = null; }
       if (!m) {
         var el = makeEl(p);
-        m = markers[p.id] = { el: el, place: p, marker: new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([p.lng, p.lat]).addTo(map) };
+        m = markers[p.id] = { el: el, place: p, marker: new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, 1] }).setLngLat([p.lng, p.lat]).addTo(map) };
       } else {
         m.marker.setLngLat([p.lng, p.lat]);
       }
@@ -205,6 +218,9 @@ export function buildMapHtml() {
     if (m.type === 'me') {
       if (!meMarker) { var d = document.createElement('div'); d.className = 'me'; meMarker = new maplibregl.Marker({ element: d }).setLngLat([m.lng, m.lat]).addTo(map); }
       else meMarker.setLngLat([m.lng, m.lat]);
+      var meEl = meMarker.getElement();
+      meEl.classList.toggle('photo', !!m.photo);
+      meEl.style.backgroundImage = m.photo ? 'url(' + JSON.stringify(m.photo) + ')' : '';
     }
     if (m.type === 'focus') map.flyTo({ center: [m.lng, m.lat], zoom: m.zoom || 15, duration: 900 });
     if (m.type === 'resetView') map.fitBounds(C.bounds, { padding: 30, duration: 800 });

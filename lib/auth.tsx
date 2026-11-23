@@ -1,6 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { supabase } from './supabase';
 import type { Profile } from './types';
@@ -10,6 +10,9 @@ type AuthState = {
   /** The signed-in person's profile (null while loading or signed out). */
   profile: Profile | null;
   loading: boolean;
+  isAdmin: boolean;
+  /** Loads the profile again, e.g. to see if the account was approved. */
+  refreshProfile: () => Promise<void>;
   /** True after opening a "reset password" email link, until a new password is saved. */
   recovering: boolean;
   /** Error from an email link (e.g. the link expired). */
@@ -21,6 +24,8 @@ type AuthState = {
 const AuthContext = createContext<AuthState>({
   session: null,
   profile: null,
+  isAdmin: false,
+  refreshProfile: async () => {},
   loading: true,
   recovering: false,
   linkError: null,
@@ -33,7 +38,9 @@ export const resetPasswordRedirect = () => Linking.createURL('reset-password');
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [account, setAccount] = useState<{ profile: Profile; isAdmin: boolean } | null>(null);
+  // Which user's profile we finished trying to load, so admins never see the customer screens flash by.
+  const [checkedId, setCheckedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [recovering, setRecovering] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -54,22 +61,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const userId = session?.user.id;
+  const fetchAccount = useCallback(async () => {
+    const [p, a] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId!).single<Profile>(),
+      supabase.from('admins').select('user_id').eq('user_id', userId!).maybeSingle(),
+    ]);
+    if (p.error) throw p.error;
+    if (a.error) throw a.error;
+    return { profile: p.data, isAdmin: !!a.data };
+  }, [userId]);
+
   useEffect(() => {
     let active = true;
-    setProfile(null);
-    if (userId)
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single<Profile>()
-        .then(({ data }) => {
-          if (active) setProfile(data);
-        });
+    let timer: ReturnType<typeof setTimeout>;
+    setAccount(null);
+    const load = () =>
+      fetchAccount()
+        .then((next) => active && setAccount(next))
+        .catch(() => {
+          if (active) timer = setTimeout(load, 5000); // no internet: keep trying
+        })
+        .finally(() => active && setCheckedId(userId!));
+    if (userId) load();
+    else setCheckedId(null);
     return () => {
       active = false;
+      clearTimeout(timer);
     };
-  }, [userId]);
+  }, [userId, fetchAccount]);
+
+  const refreshProfile = useCallback(async () => setAccount(await fetchAccount()), [fetchAccount]);
 
   // Handle links from Supabase emails, e.g. vulcatic://reset-password#access_token=...&type=recovery
   useEffect(() => {
@@ -96,8 +117,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         session,
-        profile,
-        loading,
+        profile: account?.profile ?? null,
+        isAdmin: account?.isAdmin ?? false,
+        refreshProfile,
+        loading: loading || (!!userId && checkedId !== userId),
         recovering,
         linkError,
         finishRecovery: () => setRecovering(false),

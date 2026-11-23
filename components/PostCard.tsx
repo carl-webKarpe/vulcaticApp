@@ -63,7 +63,7 @@ export function PostCard({ post, onToggleLike, onDelete }: Props) {
   return (
     <View style={[styles.card, { backgroundColor: t.card, borderColor: t.border }]}>
       <View style={styles.header}>
-        <Avatar name={username} />
+        <Avatar name={username} path={post.profiles?.avatar_url} />
         <View style={styles.headerText}>
           <Text style={[styles.username, { color: t.text }]} numberOfLines={1}>
             {username}

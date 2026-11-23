@@ -1,7 +1,7 @@
 import { POST_IMAGES_BUCKET, supabase } from './supabase';
 import type { FeedPost, Post } from './types';
 
-const POST_SELECT = 'id, user_id, caption, image_path, created_at, profiles(username), likes(count)';
+const POST_SELECT = 'id, user_id, caption, image_path, created_at, profiles(username, avatar_url), likes(count)';
 export const PAGE_SIZE = 10;
 
 /**
@@ -43,13 +43,13 @@ export async function setLiked(postId: number, userId: string, like: boolean) {
 }
 
 /** Uploads a local image (from the camera or gallery) into Storage under the user's own folder. */
-export async function uploadImage(userId: string, localUri: string, mimeType?: string | null) {
+export async function uploadImage(userId: string, localUri: string, mimeType?: string | null, bucket = POST_IMAGES_BUCKET) {
   const contentType = mimeType ?? 'image/jpeg';
   const ext = contentType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'jpg';
   const path = `${userId}/${Date.now()}.${ext}`;
 
   const body = await fetch(localUri).then((r) => r.arrayBuffer());
-  const { error } = await supabase.storage.from(POST_IMAGES_BUCKET).upload(path, body, { contentType });
+  const { error } = await supabase.storage.from(bucket).upload(path, body, { contentType });
   if (error) throw error;
   return path;
 }

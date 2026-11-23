@@ -143,6 +143,9 @@ export default function SignIn() {
                       </Pressable>
                     );
                   })}
+                  {role !== 'user' && (
+                    <Text style={{ color: t.muted, fontSize: 14, lineHeight: 20 }}>An admin will check your account before you can go on the map.</Text>
+                  )}
                 </View>
               )}
               {mode === 'sign-up' && (

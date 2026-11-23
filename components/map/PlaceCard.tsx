@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { avatarUrl } from '@/lib/supabase';
 import { brand, useTheme } from '@/lib/theme';
-import { callPlace, directionsUrl, distanceKm, formatDistance, KIND_LABEL, openStatus, statusLabel, type Place } from '@/lib/places';
+import { callPlace, directionsUrl, distanceKm, formatDistance, goesToCustomer, KIND_LABEL, openStatus, peso, SERVICE_KEYS, SERVICES, statusLabel, takesVisits, type Place } from '@/lib/places';
 
 type Props = {
   place: Place;
@@ -20,12 +21,16 @@ export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Pro
   const kindColor = isShop ? t.accent : t.success;
   const phone = place.phone;
   const status = statusLabel(place);
+  const photo = avatarUrl(place.photo_path);
+  const how = [goesToCustomer(place) && 'Comes to you', takesVisits(place) && 'Visit the shop'].filter(Boolean).join(' · ');
 
   return (
     <View style={[styles.card, { backgroundColor: t.card, borderColor: t.border }]}>
       <View style={styles.top}>
         <View style={[styles.icon, { backgroundColor: isShop ? brand.orange : brand.green }]}>
-          {isShop ? (
+          {photo ? (
+            <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" />
+          ) : isShop ? (
             <Ionicons name="build" size={22} color="#fff" />
           ) : (
             <Image source={require('@/assets/images/gecko-head.png')} style={styles.gecko} contentFit="contain" />
@@ -38,9 +43,15 @@ export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Pro
           <View style={styles.badges}>
             <View style={[styles.badge, { backgroundColor: isShop ? t.accentSoft : t.successSoft }]}>
               <Text style={[styles.badgeText, { color: kindColor }]}>
-                {isShop ? KIND_LABEL.shop : `${KIND_LABEL.vulcator} · comes to you`}
+                {KIND_LABEL[place.kind]}
               </Text>
             </View>
+            {place.owner_id && place.approved && (
+              <View style={[styles.badge, styles.verified, { backgroundColor: t.successSoft }]}>
+                <Ionicons name="shield-checkmark" size={13} color={t.success} />
+                <Text style={[styles.badgeText, { color: t.success }]}>Verified</Text>
+              </View>
+            )}
             {status && (
               <View style={[styles.badge, { backgroundColor: openStatus(place) ? t.successSoft : t.skeleton }]}>
                 <Text style={[styles.badgeText, { color: openStatus(place) ? t.success : t.text }]}>{status}</Text>
@@ -59,9 +70,16 @@ export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Pro
       </View>
 
       <View style={styles.rows}>
+        {how ? <Row icon="car-outline" text={how} /> : null}
         {place.address && <Row icon="location-outline" text={place.address} />}
         {place.hours && <Row icon="time-outline" text={place.hours} />}
         {me && <Row icon="navigate-outline" text={formatDistance(distanceKm(me, place))} />}
+        {SERVICE_KEYS.filter((k) => place.prices[k]).map((k) => (
+          <View key={k} style={styles.price}>
+            <Text style={[styles.rowText, { color: t.text }]}>{SERVICES[k]}</Text>
+            <Text style={{ color: t.text, fontSize: 14, fontWeight: '700' }}>{peso(place.prices[k]!)}</Text>
+          </View>
+        ))}
         {place.description && <Text style={[styles.desc, { color: t.muted }]}>{place.description}</Text>}
       </View>
 
@@ -135,6 +153,8 @@ const styles = StyleSheet.create({
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   badgeText: { fontSize: 12, fontWeight: '800' },
+  verified: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  price: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rows: { gap: 7 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   rowText: { fontSize: 14, flex: 1 },

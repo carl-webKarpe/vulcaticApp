@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState }
 import { View } from 'react-native';
 
 import { openStatus, type Place } from '@/lib/places';
+import { avatarUrl } from '@/lib/supabase';
 
 import { MapFrame, type MapFrameHandle, type MapMessage } from './MapFrame';
 import { buildMapHtml } from './mapHtml';
@@ -15,6 +16,7 @@ type Props = {
   places: Place[];
   selectedId: number | null;
   me: { lat: number; lng: number } | null;
+  mePhoto?: string | null;
   picking: boolean;
   onSelect: (id: number | null) => void;
   onCenter: (c: { lat: number; lng: number }) => void;
@@ -23,7 +25,7 @@ type Props = {
 };
 
 export const PlacesMap = forwardRef<PlacesMapHandle, Props>(function PlacesMap(
-  { places, selectedId, me, picking, onSelect, onCenter, onReady, onError },
+  { places, selectedId, me, mePhoto, picking, onSelect, onCenter, onReady, onError },
   ref,
 ) {
   const html = useMemo(buildMapHtml, []);
@@ -37,14 +39,14 @@ export const PlacesMap = forwardRef<PlacesMapHandle, Props>(function PlacesMap(
 
   // Keep the map in sync with the app's state once it has loaded.
   useEffect(() => {
-    if (ready) frame.current?.send({ type: 'places', places: places.map((p) => ({ ...p, open: openStatus(p) })) });
+    if (ready) frame.current?.send({ type: 'places', places: places.map((p) => ({ ...p, open: openStatus(p), photo: avatarUrl(p.photo_path) })) });
   }, [ready, places]);
   useEffect(() => {
     if (ready) frame.current?.send({ type: 'select', id: selectedId });
   }, [ready, selectedId]);
   useEffect(() => {
-    if (ready && me) frame.current?.send({ type: 'me', ...me });
-  }, [ready, me]);
+    if (ready && me) frame.current?.send({ type: 'me', ...me, photo: avatarUrl(mePhoto) });
+  }, [ready, me, mePhoto]);
   useEffect(() => {
     if (ready) frame.current?.send({ type: 'pickMode', on: picking });
   }, [ready, picking]);

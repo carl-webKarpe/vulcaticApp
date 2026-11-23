@@ -1,11 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Linking } from 'react-native';
 
-import { useAuth } from './auth';
 import { friendlyError } from './errors';
 import { supabase } from './supabase';
 
 export type PlaceKind = 'shop' | 'vulcator';
+
+export const SERVICES = {
+  flat_tire: 'Flat tire repair',
+  vulcanizing: 'Tire vulcanizing',
+  replacement: 'Tire replacement',
+  air_refill: 'Air refill',
+  jump_start: 'Battery jump-start',
+};
+export type ServiceKey = keyof typeof SERVICES;
+export const SERVICE_KEYS = Object.keys(SERVICES) as ServiceKey[];
 
 export type Place = {
   id: number;
@@ -21,11 +30,30 @@ export type Place = {
   owner_id: string | null;
   approved: boolean;
   is_open: boolean | null;
+  photo_path: string | null;
+  /** Price in pesos for each service offered. */
+  prices: Partial<Record<ServiceKey, number>>;
+  /** null = the usual for its kind. */
+  roadside: boolean | null;
+  shop_visits: boolean | null;
   created_at: string;
   updated_at: string;
 };
 
-export type PlaceInput = Pick<Place, 'name' | 'kind' | 'lat' | 'lng' | 'address' | 'phone' | 'hours' | 'description'>;
+export type PlaceInput = Pick<Place, 'name' | 'kind' | 'lat' | 'lng' | 'address' | 'phone' | 'hours' | 'description' | 'prices' | 'roadside' | 'shop_visits'>;
+
+export const goesToCustomer = (p: Pick<Place, 'kind' | 'roadside'>) => p.roadside ?? p.kind === 'vulcator';
+export const takesVisits = (p: Pick<Place, 'kind' | 'shop_visits'>) => p.shop_visits ?? p.kind === 'shop';
+
+/** "150" or "19.50" typed by the owner, as a price from 1 to 100,000. null = not a valid price. */
+export function parsePrice(text: string): number | null {
+  const clean = text.replace(/[₱,\s]/g, '');
+  if (!/^\d+(\.\d{1,2})?$/.test(clean)) return null;
+  const n = Number(clean);
+  return n >= 1 && n <= 100000 ? n : null;
+}
+
+export const peso = (n: number) => `₱${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 
 export const KIND_LABEL: Record<PlaceKind, string> = {
   shop: 'Vulcanizing shop',
@@ -106,25 +134,6 @@ export function usePlaces() {
   }, [reloadKey]);
 
   return { places, error, reload: () => setReloadKey((k) => k + 1) };
-}
-
-/** True if the signed-in user is in the admins table. */
-export function useIsAdmin() {
-  const { session } = useAuth();
-  const userId = session?.user.id;
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    if (!userId) return setIsAdmin(false);
-    supabase
-      .from('admins')
-      .select('user_id')
-      .eq('user_id', userId)
-      .maybeSingle()
-      .then(({ data }) => setIsAdmin(!!data));
-  }, [userId]);
-
-  return isAdmin;
 }
 
 export async function getPlace(id: number) {

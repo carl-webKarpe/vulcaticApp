@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, Tabs } from 'expo-router';
 import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
@@ -66,12 +66,32 @@ export default function TabsLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="work"
+          options={{
+            title: 'Work',
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons name={focused ? 'briefcase' : 'briefcase-outline'} color={color as string} size={size} />
+            ),
+          }}
+        />
       </Tabs.Protected>
       <Tabs.Protected guard={!!session}>
       <Tabs.Screen
         name="feed"
         options={{
           headerTitle: () => <FeedTitle />,
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.navigate('/new')}
+              accessibilityRole="button"
+              accessibilityLabel="Share a new post"
+              style={({ pressed }) => [styles.postButton, { backgroundColor: t.primary }, pressed && { opacity: 0.8 }]}
+            >
+              <Ionicons name="add" size={20} color={t.onPrimary} />
+              <Text style={{ color: t.onPrimary, fontWeight: '700', fontSize: 15 }}>Post</Text>
+            </Pressable>
+          ),
           tabBarLabel: 'Feed',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'images' : 'images-outline'} color={color as string} size={size} />
@@ -82,13 +102,7 @@ export default function TabsLayout() {
         name="new"
         options={{
           title: 'New post',
-          tabBarLabel: 'Post',
-          tabBarAccessibilityLabel: 'Share a new post',
-          tabBarIcon: () => (
-            <View style={[styles.shareButton, { backgroundColor: t.primary }]}>
-              <Ionicons name="add" size={22} color={t.onPrimary} />
-            </View>
-          ),
+          href: null, // opened from the Post button in the feed
         }}
       />
       </Tabs.Protected>
@@ -109,5 +123,5 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   titleIcon: { width: 30, height: 30 },
   title: { fontSize: 20, fontWeight: '800' },
-  shareButton: { width: 44, height: 28, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  postButton: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 44, paddingHorizontal: 14, borderRadius: 22, marginRight: 12 },
 });

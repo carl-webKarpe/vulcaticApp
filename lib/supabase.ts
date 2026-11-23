@@ -32,6 +32,12 @@ if (Platform.OS !== 'web') {
 
 export const POST_IMAGES_BUCKET = 'post-images';
 
+export const AVATARS_BUCKET = 'avatars';
+
+export function avatarUrl(path: string | null | undefined) {
+  return path ? supabase.storage.from(AVATARS_BUCKET).getPublicUrl(path).data.publicUrl : null;
+}
+
 export function publicImageUrl(path: string) {
   return supabase.storage.from(POST_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl;
 }

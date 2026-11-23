@@ -9,7 +9,7 @@ import { TextField } from '@/components/TextField';
 import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { haptic } from '@/lib/haptics';
-import { getPlace, isInSiargao, KIND_LABEL, savePlace, useIsAdmin, type PlaceKind } from '@/lib/places';
+import { getPlace, goesToCustomer, isInSiargao, KIND_LABEL, parsePrice, savePlace, SERVICE_KEYS, SERVICES, takesVisits, type PlaceKind, type ServiceKey } from '@/lib/places';
 import { brand, useTheme } from '@/lib/theme';
 
 /** Add a pin (lat/lng params) or edit one (id param; lat/lng moves it). Owners edit only their own pin. */
@@ -18,8 +18,7 @@ export default function PlaceForm() {
   const params = useLocalSearchParams<{ id?: string; lat?: string; lng?: string }>();
   const editId = params.id ? Number(params.id) : undefined;
 
-  const { profile } = useAuth();
-  const isAdmin = useIsAdmin();
+  const { profile, isAdmin } = useAuth();
   const [chosenKind, setKind] = useState<PlaceKind>('shop');
   const ownerKind = profile?.role === 'shop' || profile?.role === 'vulcator' ? profile.role : null;
   const kind = !editId && !isAdmin && ownerKind ? ownerKind : chosenKind;
@@ -28,6 +27,11 @@ export default function PlaceForm() {
   const [phone, setPhone] = useState('');
   const [hours, setHours] = useState('');
   const [description, setDescription] = useState('');
+  // A service is offered when it has a price here, even an empty one still being typed.
+  const [prices, setPrices] = useState<Partial<Record<ServiceKey, string>>>({});
+  const [roadside, setRoadside] = useState<boolean | null>(null);
+  const [visits, setVisits] = useState<boolean | null>(null);
+  const offers = { roadside: goesToCustomer({ kind, roadside }), shop_visits: takesVisits({ kind, shop_visits: visits }) };
   const [coords, setCoords] = useState({ lat: Number(params.lat ?? 0), lng: Number(params.lng ?? 0) });
   const [loading, setLoading] = useState(!!editId);
   const [saving, setSaving] = useState(false);
@@ -43,6 +47,9 @@ export default function PlaceForm() {
         setPhone(p.phone ?? '');
         setHours(p.hours ?? '');
         setDescription(p.description ?? '');
+        setPrices(Object.fromEntries(SERVICE_KEYS.filter((k) => p.prices[k]).map((k) => [k, p.prices[k]!.toFixed(2)])));
+        setRoadside(p.roadside);
+        setVisits(p.shop_visits);
         if (!params.lat || !params.lng) setCoords({ lat: p.lat, lng: p.lng });
       })
       .catch((e) => setError(friendlyError(e)))
@@ -53,6 +60,14 @@ export default function PlaceForm() {
     if (name.trim().length < 2) return setError('Please enter a name (at least 2 letters).');
     if (phone.replace(/\D/g, '').length < 7) return setError('Please enter a phone number customers can call.');
     if (!isInSiargao(coords.lat, coords.lng)) return setError('The pin must be on Siargao Island.');
+    const savedPrices: Partial<Record<ServiceKey, number>> = {};
+    for (const k of SERVICE_KEYS) {
+      if (prices[k] === undefined) continue;
+      const price = parsePrice(prices[k]);
+      if (price === null) return setError(`Enter a price for ${SERVICES[k]}, like 150 or 19.50.`);
+      savedPrices[k] = price;
+    }
+    if (!offers.roadside && !offers.shop_visits) return setError('Choose how customers reach you: roadside, shop visits or both.');
     setError(null);
     setSaving(true);
     try {
@@ -66,6 +81,8 @@ export default function PlaceForm() {
           description: description.trim() || null,
           lat: coords.lat,
           lng: coords.lng,
+          prices: savedPrices,
+          ...offers,
         },
         editId,
       );
@@ -137,6 +154,26 @@ export default function PlaceForm() {
               autoCapitalize="sentences"
               style={{ textAlignVertical: 'top', paddingVertical: 12 }}
             />
+            <Text style={[styles.heading, { color: t.text }]}>How customers reach you</Text>
+            <Check label="Roadside assistance (I go to the customer)" on={offers.roadside} onPress={() => setRoadside(!offers.roadside)} />
+            <Check label="Shop visits (customers come to me)" on={offers.shop_visits} onPress={() => setVisits(!offers.shop_visits)} />
+            <Text style={[styles.heading, { color: t.text }]}>Services & prices</Text>
+            {SERVICE_KEYS.map((k) => (
+              <View key={k} style={styles.service}>
+                <View style={styles.flex}>
+                  <Check
+                    label={SERVICES[k]}
+                    on={prices[k] !== undefined}
+                    onPress={() => setPrices(({ [k]: old, ...rest }) => (old === undefined ? { ...rest, [k]: '' } : rest))}
+                  />
+                </View>
+                {prices[k] !== undefined && (
+                  <View style={styles.price}>
+                    <TextField label="Price (₱)" placeholder="150" keyboardType="decimal-pad" value={prices[k]} onChangeText={(v) => setPrices((cur) => ({ ...cur, [k]: v }))} maxLength={9} accessibilityLabel={`Price for ${SERVICES[k]} in pesos`} />
+                  </View>
+                )}
+              </View>
+            ))}
             <View style={[styles.coords, { backgroundColor: t.card, borderColor: t.border }]}>
               <Ionicons name="pin" size={18} color={t.accent} />
               <Text style={{ color: t.muted, flex: 1 }}>
@@ -157,7 +194,23 @@ export default function PlaceForm() {
   );
 }
 
+function Check({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  const t = useTheme();
+  return (
+    <Pressable onPress={onPress} accessibilityRole="checkbox" accessibilityState={{ checked: on }} style={styles.check}>
+      <Ionicons name={on ? 'checkbox' : 'square-outline'} size={26} color={on ? t.accent : t.muted} />
+      <Text style={[styles.checkText, { color: t.text }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  heading: { fontSize: 16, fontWeight: '800', marginTop: 6 },
+  check: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48 },
+  checkText: { flex: 1, fontSize: 16 },
+  service: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  price: { width: 130 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container: { padding: 16, gap: 14, width: '100%', maxWidth: 600, alignSelf: 'center', paddingBottom: 40 },
   kinds: { flexDirection: 'row', gap: 10 },

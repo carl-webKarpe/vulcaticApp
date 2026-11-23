@@ -14,7 +14,7 @@ import { useTheme } from '@/lib/theme';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootNavigator() {
-  const { session, loading, recovering } = useAuth();
+  const { session, isAdmin, loading, recovering } = useAuth();
   const t = useTheme();
 
   useEffect(() => {
@@ -36,14 +36,17 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.background } }}>
-      <Stack.Protected guard={!recovering}>
+      <Stack.Protected guard={!recovering && !isAdmin}>
         <Stack.Screen name="(tabs)" />
+      </Stack.Protected>
+      <Stack.Protected guard={!recovering && isAdmin}>
+        <Stack.Screen name="admin" />
       </Stack.Protected>
       <Stack.Protected guard={!!session && !recovering}>
         <Stack.Screen
-          name="change-password"
+          name="edit-profile"
           options={{
-            title: 'Change password',
+            title: 'Edit profile',
             headerShown: true,
             headerStyle: { backgroundColor: t.card },
             headerTitleStyle: { color: t.text, fontWeight: '800' },
@@ -52,9 +55,9 @@ function RootNavigator() {
           }}
         />
         <Stack.Screen
-          name="approvals"
+          name="change-password"
           options={{
-            title: 'Waiting for approval',
+            title: 'Change password',
             headerShown: true,
             headerStyle: { backgroundColor: t.card },
             headerTitleStyle: { color: t.text, fontWeight: '800' },

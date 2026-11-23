@@ -8,12 +8,9 @@ import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { PostList } from '@/components/PostList';
 import { useAuth } from '@/lib/auth';
-import { useIsAdmin } from '@/lib/places';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
-import type { Role } from '@/lib/types';
-
-const ROLE_LABEL: Record<Role, string> = { user: 'User', vulcator: 'Mobile Vulcator', shop: 'Vulcanizing shop' };
+import { ROLE_LABEL } from '@/lib/types';
 
 function Version() {
   const t = useTheme();
@@ -33,9 +30,8 @@ function confirmSignOut() {
 
 export default function Profile() {
   const t = useTheme();
-  const { session, profile } = useAuth();
+  const { session, profile, isAdmin } = useAuth();
   const userId = session?.user.id;
-  const isAdmin = useIsAdmin();
 
   if (!session)
     return (
@@ -56,16 +52,14 @@ export default function Profile() {
     <View style={[styles.header, { backgroundColor: t.card, borderColor: t.border }]}>
       <View style={[styles.banner, { backgroundColor: t.primary }]} />
       <View style={[styles.avatarRing, { backgroundColor: t.card }]}>
-        <Avatar name={username || '?'} size={84} />
+        <Avatar name={username || '?'} path={profile?.avatar_url} size={84} />
       </View>
       <Text style={[styles.username, { color: t.text }]}>{username ? `@${username}` : ' '}</Text>
       <Text style={[styles.email, { color: t.muted }]}>{session?.user.email}</Text>
       {profile && <Text style={[styles.email, { color: t.text }]}>{isAdmin ? 'Admin' : ROLE_LABEL[profile.role]}</Text>}
-      {isAdmin && (
-        <View style={styles.adminBtn}>
-          <Button title="Waiting for approval" icon="checkmark-done" onPress={() => router.push('/approvals')} />
-        </View>
-      )}
+      <View style={styles.adminBtn}>
+        <Button title="Edit profile" icon="create-outline" onPress={() => router.push('/edit-profile')} />
+      </View>
       <View style={styles.adminBtn}>
         <Button title="Change password" icon="lock-closed-outline" variant="outline" onPress={() => router.push('/change-password')} />
       </View>
@@ -78,9 +72,12 @@ export default function Profile() {
         <Text style={[styles.signOutText, { color: t.text }]}>Sign out</Text>
       </Pressable>
       <Version />
-      <Text style={[styles.sectionTitle, { color: t.text }]}>My posts</Text>
+      {!isAdmin && <Text style={[styles.sectionTitle, { color: t.text }]}>My posts</Text>}
     </View>
   );
+
+  // Admins have no feed, so no posts to list.
+  if (isAdmin) return <View style={styles.adminPage}>{header}</View>;
 
   return (
     <PostList
@@ -115,6 +112,7 @@ const styles = StyleSheet.create({
     height: 48,
     marginTop: 14,
   },
+  adminPage: { padding: 16 },
   adminBtn: { marginTop: 14 },
   version: { fontSize: 13, textAlign: 'center', marginTop: 12 },
   signOutText: { fontWeight: '600' },

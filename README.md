@@ -55,7 +55,7 @@ eas.json                build profiles (preview = APK)
    ```sql
    insert into public.admins (user_id) select id from public.profiles where username = 'YOUR_USERNAME';
    ```
-   Then run `0003_roles_and_owners.sql` and `0004_phone_and_recheck.sql` (account types, shop/Vulcator owners,
+   Then run `0003_roles_and_owners.sql`, `0004_phone_and_recheck.sql`, `0005_account_approval.sql` and `0006_profiles_photos_services.sql` (account types, shop/Vulcator owners,
    admin approval, map without login).
 6. **For "Forgot password?"**: go to **Authentication → URL Configuration → Redirect URLs** and add:
    - `vulcatic://**` (the installed APK)
