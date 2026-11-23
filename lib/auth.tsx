@@ -3,9 +3,12 @@ import * as Linking from 'expo-linking';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 import { supabase } from './supabase';
+import type { Profile } from './types';
 
 type AuthState = {
   session: Session | null;
+  /** The signed-in person's profile (null while loading or signed out). */
+  profile: Profile | null;
   loading: boolean;
   /** True after opening a "reset password" email link, until a new password is saved. */
   recovering: boolean;
@@ -17,6 +20,7 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState>({
   session: null,
+  profile: null,
   loading: true,
   recovering: false,
   linkError: null,
@@ -29,6 +33,7 @@ export const resetPasswordRedirect = () => Linking.createURL('reset-password');
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [recovering, setRecovering] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -47,6 +52,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  const userId = session?.user.id;
+  useEffect(() => {
+    let active = true;
+    setProfile(null);
+    if (userId)
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single<Profile>()
+        .then(({ data }) => {
+          if (active) setProfile(data);
+        });
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   // Handle links from Supabase emails, e.g. vulcatic://reset-password#access_token=...&type=recovery
   useEffect(() => {
@@ -73,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         session,
+        profile,
         loading,
         recovering,
         linkError,

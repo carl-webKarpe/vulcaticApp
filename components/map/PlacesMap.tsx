@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 
-import type { Place } from '@/lib/places';
+import { openStatus, type Place } from '@/lib/places';
 
 import { MapFrame, type MapFrameHandle, type MapMessage } from './MapFrame';
 import { buildMapHtml } from './mapHtml';
@@ -37,7 +37,7 @@ export const PlacesMap = forwardRef<PlacesMapHandle, Props>(function PlacesMap(
 
   // Keep the map in sync with the app's state once it has loaded.
   useEffect(() => {
-    if (ready) frame.current?.send({ type: 'places', places });
+    if (ready) frame.current?.send({ type: 'places', places: places.map((p) => ({ ...p, open: openStatus(p) })) });
   }, [ready, places]);
   useEffect(() => {
     if (ready) frame.current?.send({ type: 'select', id: selectedId });

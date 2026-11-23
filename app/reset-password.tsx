@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,10 +12,10 @@ import { haptic } from '@/lib/haptics';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
 
-/** Shown after opening the "reset password" link from the email. */
+/** Shown after opening the "reset password" link from the email, and from Profile > Change password. */
 export default function ResetPassword() {
   const t = useTheme();
-  const { finishRecovery } = useAuth();
+  const { recovering, finishRecovery } = useAuth();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,7 +33,8 @@ export default function ResetPassword() {
       return;
     }
     haptic.success();
-    finishRecovery();
+    if (recovering) finishRecovery();
+    else router.back();
   };
 
   return (
@@ -62,7 +64,7 @@ export default function ResetPassword() {
               />
               {error && <Notice kind="error" text={error} />}
               <Button title="Save new password" onPress={save} loading={loading} />
-              <Pressable onPress={() => supabase.auth.signOut()} style={styles.cancel} hitSlop={8}>
+              <Pressable onPress={() => (recovering ? supabase.auth.signOut() : router.back())} style={styles.cancel} hitSlop={8}>
                 <Text style={{ color: t.muted }}>Cancel</Text>
               </Pressable>
             </View>

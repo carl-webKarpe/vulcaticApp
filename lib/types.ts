@@ -1,6 +1,9 @@
+export type Role = 'user' | 'vulcator' | 'shop';
+
 export type Profile = {
   id: string;
   username: string;
+  role: Role;
   avatar_url: string | null;
   created_at: string;
 };

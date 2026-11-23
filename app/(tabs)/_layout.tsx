@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
 
 function FeedTitle() {
@@ -17,13 +19,22 @@ function FeedTitle() {
 
 export default function TabsLayout() {
   const t = useTheme();
+  const { session, profile } = useAuth();
+  const role = profile?.role;
+  const isOwner = role === 'shop' || role === 'vulcator';
+
+  // Owners start on their own screen.
+  useEffect(() => {
+    if (isOwner) router.navigate('/my-place');
+  }, [isOwner]);
+
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: t.accent,
         tabBarInactiveTintColor: t.muted,
         tabBarStyle: { backgroundColor: t.card, borderTopColor: t.border, height: 64, paddingTop: 6 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
         headerStyle: { backgroundColor: t.card },
         headerTitleStyle: { color: t.text, fontWeight: '800', fontSize: 18 },
         headerTitleAlign: 'center',
@@ -41,6 +52,22 @@ export default function TabsLayout() {
           ),
         }}
       />
+      <Tabs.Protected guard={isOwner}>
+        <Tabs.Screen
+          name="my-place"
+          options={{
+            title: role === 'shop' ? 'My shop' : 'My service',
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons
+                name={role === 'shop' ? (focused ? 'build' : 'build-outline') : focused ? 'bicycle' : 'bicycle-outline'}
+                color={color as string}
+                size={size}
+              />
+            ),
+          }}
+        />
+      </Tabs.Protected>
+      <Tabs.Protected guard={!!session}>
       <Tabs.Screen
         name="feed"
         options={{
@@ -55,19 +82,20 @@ export default function TabsLayout() {
         name="new"
         options={{
           title: 'New post',
-          tabBarLabel: () => null,
+          tabBarLabel: 'Post',
           tabBarAccessibilityLabel: 'Share a new post',
           tabBarIcon: () => (
             <View style={[styles.shareButton, { backgroundColor: t.primary }]}>
-              <Ionicons name="add" size={30} color={t.onPrimary} />
+              <Ionicons name="add" size={22} color={t.onPrimary} />
             </View>
           ),
         }}
       />
+      </Tabs.Protected>
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: session ? 'Profile' : 'Account',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} color={color as string} size={size} />
           ),
@@ -81,5 +109,5 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   titleIcon: { width: 30, height: 30 },
   title: { fontSize: 20, fontWeight: '800' },
-  shareButton: { width: 52, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  shareButton: { width: 44, height: 28, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

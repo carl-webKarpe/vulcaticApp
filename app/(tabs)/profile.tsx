@@ -1,13 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import Constants from 'expo-constants';
+import { router } from 'expo-router';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
+import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
 import { PostList } from '@/components/PostList';
 import { useAuth } from '@/lib/auth';
+import { useIsAdmin } from '@/lib/places';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
-import type { Profile as ProfileRow } from '@/lib/types';
+import type { Role } from '@/lib/types';
+
+const ROLE_LABEL: Record<Role, string> = { user: 'User', vulcator: 'Mobile Vulcator', shop: 'Vulcanizing shop' };
+
+function Version() {
+  const t = useTheme();
+  return <Text style={[styles.version, { color: t.muted }]}>Vulcatic version {Constants.expoConfig?.version}</Text>;
+}
 
 function confirmSignOut() {
   if (Platform.OS === 'web') {
@@ -22,19 +33,22 @@ function confirmSignOut() {
 
 export default function Profile() {
   const t = useTheme();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const userId = session?.user.id;
-  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const isAdmin = useIsAdmin();
 
-  useEffect(() => {
-    if (!userId) return;
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single<ProfileRow>()
-      .then(({ data }) => setProfile(data));
-  }, [userId]);
+  if (!session)
+    return (
+      <View>
+        <EmptyState
+          title="You're using Vulcatic as a guest"
+          message="Sign in to post, or to list your shop or mobile service on the map."
+          actionTitle="Sign in or join"
+          onAction={() => router.push('/sign-in')}
+        />
+        <Version />
+      </View>
+    );
 
   const username = profile?.username ?? '';
 
@@ -46,13 +60,24 @@ export default function Profile() {
       </View>
       <Text style={[styles.username, { color: t.text }]}>{username ? `@${username}` : ' '}</Text>
       <Text style={[styles.email, { color: t.muted }]}>{session?.user.email}</Text>
+      {profile && <Text style={[styles.email, { color: t.text }]}>{isAdmin ? 'Admin' : ROLE_LABEL[profile.role]}</Text>}
+      {isAdmin && (
+        <View style={styles.adminBtn}>
+          <Button title="Waiting for approval" icon="checkmark-done" onPress={() => router.push('/approvals')} />
+        </View>
+      )}
+      <View style={styles.adminBtn}>
+        <Button title="Change password" icon="lock-closed-outline" variant="outline" onPress={() => router.push('/change-password')} />
+      </View>
       <Pressable
+        accessibilityRole="button"
         onPress={confirmSignOut}
         style={({ pressed }) => [styles.signOut, { borderColor: t.border }, pressed && { opacity: 0.7 }]}
       >
         <Ionicons name="log-out-outline" size={18} color={t.text} />
         <Text style={[styles.signOutText, { color: t.text }]}>Sign out</Text>
       </Pressable>
+      <Version />
       <Text style={[styles.sectionTitle, { color: t.text }]}>My posts</Text>
     </View>
   );
@@ -87,9 +112,11 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderRadius: 12,
     paddingHorizontal: 16,
-    height: 40,
+    height: 48,
     marginTop: 14,
   },
+  adminBtn: { marginTop: 14 },
+  version: { fontSize: 13, textAlign: 'center', marginTop: 12 },
   signOutText: { fontWeight: '600' },
   sectionTitle: { alignSelf: 'flex-start', marginLeft: 16, marginTop: 18, fontSize: 16, fontWeight: '800' },
 });

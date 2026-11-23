@@ -6,18 +6,23 @@ import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollVie
 import { Button } from '@/components/Button';
 import { Notice } from '@/components/Notice';
 import { TextField } from '@/components/TextField';
+import { useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { haptic } from '@/lib/haptics';
-import { getPlace, isInSiargao, KIND_LABEL, savePlace, type PlaceKind } from '@/lib/places';
+import { getPlace, isInSiargao, KIND_LABEL, savePlace, useIsAdmin, type PlaceKind } from '@/lib/places';
 import { brand, useTheme } from '@/lib/theme';
 
-/** Admin only: add a new pin (with lat/lng params) or edit one (with id param). */
+/** Add a pin (lat/lng params) or edit one (id param; lat/lng moves it). Owners edit only their own pin. */
 export default function PlaceForm() {
   const t = useTheme();
   const params = useLocalSearchParams<{ id?: string; lat?: string; lng?: string }>();
   const editId = params.id ? Number(params.id) : undefined;
 
-  const [kind, setKind] = useState<PlaceKind>('shop');
+  const { profile } = useAuth();
+  const isAdmin = useIsAdmin();
+  const [chosenKind, setKind] = useState<PlaceKind>('shop');
+  const ownerKind = profile?.role === 'shop' || profile?.role === 'vulcator' ? profile.role : null;
+  const kind = !editId && !isAdmin && ownerKind ? ownerKind : chosenKind;
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
@@ -38,7 +43,7 @@ export default function PlaceForm() {
         setPhone(p.phone ?? '');
         setHours(p.hours ?? '');
         setDescription(p.description ?? '');
-        setCoords({ lat: p.lat, lng: p.lng });
+        if (!params.lat || !params.lng) setCoords({ lat: p.lat, lng: p.lng });
       })
       .catch((e) => setError(friendlyError(e)))
       .finally(() => setLoading(false));
@@ -46,6 +51,7 @@ export default function PlaceForm() {
 
   const save = async () => {
     if (name.trim().length < 2) return setError('Please enter a name (at least 2 letters).');
+    if (phone.replace(/\D/g, '').length < 7) return setError('Please enter a phone number customers can call.');
     if (!isInSiargao(coords.lat, coords.lng)) return setError('The pin must be on Siargao Island.');
     setError(null);
     setSaving(true);
@@ -65,9 +71,11 @@ export default function PlaceForm() {
       );
       haptic.success();
       router.back();
+      // Owners go back to their own screen, where "Waiting for approval" is shown.
+      if (ownerKind && !isAdmin) router.navigate('/my-place');
     } catch (e) {
       const msg = friendlyError(e);
-      setError(msg.includes('row-level security') ? 'Only admins can change map pins.' : msg);
+      setError(msg.includes('row-level security') ? 'You can only change your own pin.' : msg);
     } finally {
       setSaving(false);
     }
@@ -100,10 +108,12 @@ export default function PlaceForm() {
       ) : (
         <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-            <View style={styles.kinds}>
-              {kindButton('shop')}
-              {kindButton('vulcator')}
-            </View>
+            {isAdmin && (
+              <View style={styles.kinds}>
+                {kindButton('shop')}
+                {kindButton('vulcator')}
+              </View>
+            )}
             <TextField label="Name" icon="storefront-outline" placeholder="e.g. Tropa Tire Vulcanizing" value={name} onChangeText={setName} maxLength={80} autoCapitalize="words" />
             <TextField
               label={kind === 'shop' ? 'Address' : 'Area covered'}
@@ -125,7 +135,7 @@ export default function PlaceForm() {
               maxLength={500}
               multiline
               autoCapitalize="sentences"
-              style={{ minHeight: 44 }}
+              style={{ textAlignVertical: 'top', paddingVertical: 12 }}
             />
             <View style={[styles.coords, { backgroundColor: t.card, borderColor: t.border }]}>
               <Ionicons name="pin" size={18} color={t.accent} />
@@ -133,8 +143,13 @@ export default function PlaceForm() {
                 {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
               </Text>
             </View>
+            {editId && !isAdmin && (
+              <Text style={{ color: t.muted, fontSize: 14, lineHeight: 20 }}>
+                If you change your name, phone, address, description or shop spot, an admin checks it again. Your pin is hidden until then.
+              </Text>
+            )}
             {error && <Notice kind="error" text={error} />}
-            <Button title={editId ? 'Save changes' : 'Add to map'} icon="checkmark" onPress={save} loading={saving} />
+            <Button title={editId ? 'Save changes' : isAdmin ? 'Add to map' : 'Send for approval'} icon="checkmark" onPress={save} loading={saving} />
           </ScrollView>
         </KeyboardAvoidingView>
       )}

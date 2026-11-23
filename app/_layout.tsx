@@ -36,8 +36,32 @@ function RootNavigator() {
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.background } }}>
-      <Stack.Protected guard={!!session && !recovering}>
+      <Stack.Protected guard={!recovering}>
         <Stack.Screen name="(tabs)" />
+      </Stack.Protected>
+      <Stack.Protected guard={!!session && !recovering}>
+        <Stack.Screen
+          name="change-password"
+          options={{
+            title: 'Change password',
+            headerShown: true,
+            headerStyle: { backgroundColor: t.card },
+            headerTitleStyle: { color: t.text, fontWeight: '800' },
+            headerTintColor: t.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="approvals"
+          options={{
+            title: 'Waiting for approval',
+            headerShown: true,
+            headerStyle: { backgroundColor: t.card },
+            headerTitleStyle: { color: t.text, fontWeight: '800' },
+            headerTintColor: t.accent,
+            headerShadowVisible: false,
+          }}
+        />
         <Stack.Screen
           name="place-form"
           options={{

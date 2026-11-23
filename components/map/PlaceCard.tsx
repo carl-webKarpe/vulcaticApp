@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { brand, useTheme } from '@/lib/theme';
-import { directionsUrl, distanceKm, formatDistance, KIND_LABEL, type Place } from '@/lib/places';
+import { callPlace, directionsUrl, distanceKm, formatDistance, KIND_LABEL, openStatus, statusLabel, type Place } from '@/lib/places';
 
 type Props = {
   place: Place;
@@ -18,7 +18,8 @@ export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Pro
   const t = useTheme();
   const isShop = place.kind === 'shop';
   const kindColor = isShop ? t.accent : t.success;
-  const phone = place.phone?.replace(/[^\d+]/g, '');
+  const phone = place.phone;
+  const status = statusLabel(place);
 
   return (
     <View style={[styles.card, { backgroundColor: t.card, borderColor: t.border }]}>
@@ -40,6 +41,11 @@ export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Pro
                 {isShop ? KIND_LABEL.shop : `${KIND_LABEL.vulcator} · comes to you`}
               </Text>
             </View>
+            {status && (
+              <View style={[styles.badge, { backgroundColor: openStatus(place) ? t.successSoft : t.skeleton }]}>
+                <Text style={[styles.badgeText, { color: openStatus(place) ? t.success : t.text }]}>{status}</Text>
+              </View>
+            )}
             {place.is_demo && (
               <View style={[styles.badge, { backgroundColor: t.skeleton }]}>
                 <Text style={[styles.badgeText, { color: t.muted }]}>DEMO</Text>
@@ -47,7 +53,7 @@ export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Pro
             )}
           </View>
         </View>
-        <Pressable onPress={onClose} hitSlop={12} accessibilityLabel="Close">
+        <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
           <Ionicons name="close-circle" size={28} color={t.muted} />
         </Pressable>
       </View>
@@ -62,7 +68,7 @@ export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Pro
       <View style={styles.actions}>
         {phone ? (
           <Pressable
-            onPress={() => Linking.openURL(`tel:${phone}`)}
+            onPress={() => callPlace(phone)}
             style={({ pressed }) => [styles.action, { backgroundColor: t.primary }, pressed && styles.pressed]}
           >
             <Ionicons name="call" size={18} color={t.onPrimary} />
@@ -128,7 +134,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 18, fontWeight: '800' },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  badgeText: { fontSize: 11, fontWeight: '800' },
+  badgeText: { fontSize: 12, fontWeight: '800' },
   rows: { gap: 7 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   rowText: { fontSize: 14, flex: 1 },
@@ -136,7 +142,7 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 10 },
   action: {
     flex: 1,
-    height: 46,
+    height: 52,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',

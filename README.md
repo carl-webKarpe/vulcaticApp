@@ -13,7 +13,7 @@ It also runs as a website.
   Vulcators (green gecko pins), filter chips, "my location", distance, **Call** and **Directions**.
   The map updates live when a pin is added, moved or removed. Free map: MapLibre + OpenFreeMap
   (OpenStreetMap data), so there's no API key and no bill.
-- **Admin-only pins:** only users in the `admins` table can add / edit / delete pins
+- **Pins:** shops and Vulcators add and edit their own pin; users in the `admins` table approve them
 
 - Sign up / sign in with email + password (with a username), show/hide password, forgot password
 - Feed of everyone's posts (photo + caption), pull to refresh, loads more as you scroll
@@ -55,6 +55,8 @@ eas.json                build profiles (preview = APK)
    ```sql
    insert into public.admins (user_id) select id from public.profiles where username = 'YOUR_USERNAME';
    ```
+   Then run `0003_roles_and_owners.sql` and `0004_phone_and_recheck.sql` (account types, shop/Vulcator owners,
+   admin approval, map without login).
 6. **For "Forgot password?"**: go to **Authentication → URL Configuration → Redirect URLs** and add:
    - `vulcatic://**` (the installed APK)
    - `exp://**` (testing in Expo Go)

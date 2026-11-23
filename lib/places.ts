@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Linking } from 'react-native';
 
 import { useAuth } from './auth';
 import { friendlyError } from './errors';
@@ -17,6 +18,9 @@ export type Place = {
   hours: string | null;
   description: string | null;
   is_demo: boolean;
+  owner_id: string | null;
+  approved: boolean;
+  is_open: boolean | null;
   created_at: string;
   updated_at: string;
 };
@@ -37,6 +41,25 @@ export function isInSiargao(lat: number, lng: number) {
   return lng >= w && lng <= e && lat >= s && lat <= n;
 }
 
+const STATUS_HOURS = 12;
+
+/** true = open/available, false = closed/off, null = unknown or too old to trust. */
+export function openStatus(p: Pick<Place, 'is_open' | 'updated_at'>, now = Date.now()): boolean | null {
+  // shortcut: any edit refreshes updated_at, add a status_at column if edits make old statuses look fresh.
+  if (p.is_open === true && now - Date.parse(p.updated_at) > STATUS_HOURS * 3600_000) return null;
+  return p.is_open;
+}
+
+export function statusLabel(p: Place): string | null {
+  const open = openStatus(p);
+  if (open === null) return null;
+  if (p.kind === 'shop') return open ? 'Open now' : 'Closed';
+  return open ? 'Available now' : 'Not available';
+}
+
+/** Pins everyone may see. Demo pins have made-up phone numbers, so they stay hidden. */
+const isPublic = (p: Place) => p.approved && !p.is_demo;
+
 /** All places, kept up to date live (Supabase Realtime). */
 export function usePlaces() {
   const [places, setPlaces] = useState<Place[] | null>(null);
@@ -49,6 +72,8 @@ export function usePlaces() {
     supabase
       .from('places')
       .select('*')
+      .eq('approved', true)
+      .eq('is_demo', false)
       .order('name')
       .returns<Place[]>()
       .then(({ data, error: e }) => {
@@ -67,6 +92,7 @@ export function usePlaces() {
           const list = cur ?? [];
           if (payload.eventType === 'DELETE') return list.filter((p) => p.id !== (payload.old as Place).id);
           const row = payload.new as Place;
+          if (!isPublic(row)) return list.filter((p) => p.id !== row.id);
           const exists = list.some((p) => p.id === row.id);
           return exists ? list.map((p) => (p.id === row.id ? row : p)) : [...list, row];
         });
@@ -108,15 +134,38 @@ export async function getPlace(id: number) {
 }
 
 export async function savePlace(input: PlaceInput, id?: number) {
-  const { error } = id
-    ? await supabase.from('places').update(input).eq('id', id)
-    : await supabase.from('places').insert(input);
+  const q = id ? supabase.from('places').update(input).eq('id', id) : supabase.from('places').insert(input);
+  // .single() makes an edit that the security rules blocked fail instead of looking saved.
+  const { error } = await q.select('id').single();
   if (error) throw error;
+}
+
+export async function patchPlace(id: number, patch: Partial<Pick<Place, 'is_open' | 'approved' | 'lat' | 'lng'>>) {
+  const { data, error } = await supabase.from('places').update(patch).eq('id', id).select('*').single<Place>();
+  if (error) throw error;
+  return data;
+}
+
+export async function getMyPlace(userId: string) {
+  const { data, error } = await supabase.from('places').select('*').eq('owner_id', userId).maybeSingle<Place>();
+  if (error) throw error;
+  return data;
+}
+
+export async function getWaitingPlaces() {
+  const { data, error } = await supabase.from('places').select('*').eq('approved', false).order('created_at').returns<Place[]>();
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function deletePlace(id: number) {
   const { error } = await supabase.from('places').delete().eq('id', id);
   if (error) throw error;
+}
+
+export function callPlace(phone: string | null) {
+  const number = phone?.replace(/[^\d+]/g, '');
+  if (number) Linking.openURL(`tel:${number}`);
 }
 
 /** Distance in km between two points (haversine). */

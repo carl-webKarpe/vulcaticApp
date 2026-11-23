@@ -25,9 +25,9 @@ const light = {
   primary: brand.orange,
   onPrimary: '#FFFFFF',
   /** Orange used for text and icons (links, liked heart). */
-  accent: brand.orange,
+  accent: '#BF3B00',
   accentSoft: '#FCE9DF',
-  success: '#0E9F2C',
+  success: '#0B7A22',
   successSoft: '#E3F9E7',
   danger: '#C62828',
   dangerSoft: '#FDECEC',

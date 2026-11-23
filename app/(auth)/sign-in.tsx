@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,14 +12,21 @@ import { resetPasswordRedirect, useAuth } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
+import type { Role } from '@/lib/types';
 
 type Mode = 'sign-in' | 'sign-up' | 'forgot';
 
 const TITLES: Record<Mode, { title: string; subtitle: string; button: string }> = {
-  'sign-in': { title: 'Welcome back!', subtitle: 'Sign in to see what your crew is sharing.', button: 'Sign in' },
-  'sign-up': { title: 'Join Vulcatic', subtitle: 'Create an account to start sharing.', button: 'Create account' },
+  'sign-in': { title: 'Welcome back!', subtitle: 'Sign in to your Vulcatic account.', button: 'Sign in' },
+  'sign-up': { title: 'Join Vulcatic', subtitle: 'Choose what fits you.', button: 'Create account' },
   forgot: { title: 'Forgot password?', subtitle: "Enter your email and we'll send you a reset link.", button: 'Send reset link' },
 };
+
+const ROLES: { role: Role; icon: keyof typeof Ionicons.glyphMap; title: string; hint: string }[] = [
+  { role: 'user', icon: 'person', title: 'I need help', hint: 'Find someone to fix my tire' },
+  { role: 'vulcator', icon: 'bicycle', title: 'I fix tires on the road', hint: 'I go to the customer' },
+  { role: 'shop', icon: 'build', title: 'I own a shop', hint: 'Customers come to me' },
+];
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,6 +38,7 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [role, setRole] = useState<Role>('user');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; kind: 'error' | 'success' } | null>(null);
   const emailRef = useRef<TextFieldRef>(null);
@@ -64,7 +74,7 @@ export default function SignIn() {
         const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { username } },
+          options: { data: { username, role } },
         });
         if (error) throw error;
         if (!data.session)
@@ -108,6 +118,33 @@ export default function SignIn() {
             <Text style={[styles.subtitle, { color: t.muted }]}>{copy.subtitle}</Text>
 
             <View style={styles.form}>
+              {mode === 'sign-up' && (
+                <View style={styles.roles} accessibilityRole="radiogroup">
+                  {ROLES.map((r) => {
+                    const active = role === r.role;
+                    return (
+                      <Pressable
+                        key={r.role}
+                        onPress={() => setRole(r.role)}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: active }}
+                        style={({ pressed }) => [
+                          styles.role,
+                          { borderColor: active ? t.accent : t.border, backgroundColor: active ? t.accentSoft : t.card },
+                          pressed && { opacity: 0.8 },
+                        ]}
+                      >
+                        <Ionicons name={r.icon} size={26} color={active ? t.accent : t.muted} />
+                        <View style={styles.flex}>
+                          <Text style={[styles.roleTitle, { color: t.text }]}>{r.title}</Text>
+                          <Text style={{ color: active ? t.text : t.muted, fontSize: 14 }}>{r.hint}</Text>
+                        </View>
+                        <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={22} color={active ? t.accent : t.muted} />
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
               {mode === 'sign-up' && (
                 <TextField
                   label="Username"
@@ -177,6 +214,9 @@ export default function SignIn() {
                 </Pressable>
               )}
             </View>
+            <View style={styles.switchRow}>
+              <Button title="Continue without an account" variant="ghost" icon="map-outline" onPress={() => router.replace('/')} />
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -195,6 +235,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '800', textAlign: 'center', marginTop: 4 },
   subtitle: { textAlign: 'center', marginTop: 6, fontSize: 15, lineHeight: 21 },
   form: { gap: 14, marginTop: 24 },
+  roles: { gap: 10 },
+  role: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2, borderRadius: 16, padding: 14, minHeight: 64 },
+  roleTitle: { fontSize: 16, fontWeight: '800' },
   forgot: { alignSelf: 'flex-end', marginTop: -4 },
-  switchRow: { alignItems: 'center', marginTop: 24 },
+  switchRow: { alignItems: 'center', marginTop: 20 },
 });

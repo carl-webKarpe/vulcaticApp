@@ -1,7 +1,8 @@
-import { SIARGAO_BOUNDS, SIARGAO_CENTER } from '@/lib/places';
+import { SIARGAO_BOUNDS } from '@/lib/places';
 import { brand } from '@/lib/theme';
 
 import { GECKO_MARKER_DATA_URI } from './geckoMarker';
+import { MAPLIBRE_CSS, MAPLIBRE_JS } from './maplibreBundle';
 
 /**
  * The map runs inside a WebView using MapLibre GL JS (open source) with free
@@ -10,7 +11,7 @@ import { GECKO_MARKER_DATA_URI } from './geckoMarker';
  * Messages in  (from the app):  places, me, select, focus, resetView, pickMode
  * Messages out (to the app):    ready, select, tap, center, error
  */
-const MAPLIBRE_VERSION = '5.24.0';
+// Colorful in dark mode too: the dark styles were too dim to read outdoors. Has 3D buildings up close.
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 
 export function buildMapHtml() {
@@ -18,7 +19,6 @@ export function buildMapHtml() {
   const pad = 0.06;
   const config = {
     style: STYLE_URL,
-    center: [SIARGAO_CENTER.lng, SIARGAO_CENTER.lat],
     bounds: [
       [w, s],
       [e, n],
@@ -38,8 +38,8 @@ export function buildMapHtml() {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css" />
-<script src="https://unpkg.com/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js"></script>
+<style>${MAPLIBRE_CSS}</style>
+<script>${MAPLIBRE_JS}</script>
 <style>
   html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #dfe9ef; }
   body { font-family: -apple-system, system-ui, Roboto, 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -55,10 +55,15 @@ export function buildMapHtml() {
            color: ${brand.ink}; background: rgba(255,255,255,.92); padding: 2px 6px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.2);
            display: none; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
   body.zoomed .label, .pin.selected .label { display: block; }
+  .open-dot { position: absolute; right: 1px; top: 1px; width: 11px; height: 11px; border-radius: 50%; background: #0B7A22; border: 2px solid #fff; }
+  .cluster { width: 46px; height: 46px; border-radius: 50%; background: ${brand.ink}; color: #fff; border: 3px solid #fff; box-sizing: border-box;
+             display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; box-shadow: 0 3px 8px rgba(0,0,0,.35); cursor: pointer; }
+  @media (prefers-reduced-motion: reduce) { .me { animation: none !important; } .pin { transition: none !important; } }
   .me { width: 18px; height: 18px; border-radius: 50%; background: #1A73E8; border: 3px solid #fff; box-shadow: 0 0 0 0 rgba(26,115,232,.5);
         animation: pulse 2s infinite; }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(26,115,232,.5); } 70% { box-shadow: 0 0 0 16px rgba(26,115,232,0); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232,0); } }
   .maplibregl-ctrl-attrib { font-size: 10px; }
+  .maplibregl-ctrl-bottom-left { bottom: 76px; } /* keep the map credit above the bottom button */
   #fail { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; text-align: center; padding: 24px;
           color: #444; font-size: 15px; background: #eef2f4; }
 </style>
@@ -92,32 +97,70 @@ export function buildMapHtml() {
   }
 
   var map = new maplibregl.Map({
-    container: 'map', style: C.style, center: C.center, zoom: 10, minZoom: 9, maxZoom: 18,
-    maxBounds: C.maxBounds, attributionControl: { compact: true }, pitchWithRotate: false
+    container: 'map', style: C.style, bounds: C.bounds, fitBoundsOptions: { padding: 30 }, minZoom: 9, maxZoom: 18,
+    maxBounds: C.maxBounds, attributionControl: false, pitchWithRotate: false
   });
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
   map.dragRotate.disable();
   map.touchZoomRotate.disableRotation();
-  map.fitBounds(C.bounds, { padding: 30, duration: 0 });
 
   var markers = {}; // id -> { marker, el, place }
+  var clusters = [];
   var selected = null;
   var meMarker = null;
   var picking = false;
 
   function setZoomClass() { document.body.classList.toggle('zoomed', map.getZoom() >= 12.5); }
   map.on('zoom', setZoomClass);
-  map.on('moveend', function () { var c = map.getCenter(); send({ type: 'center', lat: c.lat, lng: c.lng }); });
+  map.on('zoomend', group);
+  function sendCenter() { var c = map.getCenter(); send({ type: 'center', lat: c.lat, lng: c.lng }); }
+  map.on('moveend', sendCenter);
   map.on('click', function () { if (!picking) send({ type: 'tap' }); });
   map.on('error', function (e) { if (e && e.error && /style/i.test(String(e.error.message))) send({ type: 'error', message: 'style' }); });
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
+  function asButton(el, name) {
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', name);
+    el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); el.click(); } });
+  }
+
+  // Pins that would overlap on screen become one circle with a number. Tapping it zooms in.
+  function group() {
+    clusters.forEach(function (c) { c.remove(); });
+    clusters = [];
+    var groups = [];
+    Object.keys(markers).forEach(function (id) {
+      var m = markers[id];
+      m.el.style.display = '';
+      if (String(selected) === id || map.getZoom() >= 15) return;
+      var pt = map.project([m.place.lng, m.place.lat]);
+      var g = groups.find(function (x) { return Math.hypot(x.pt.x - pt.x, x.pt.y - pt.y) < 44; });
+      if (g) g.items.push(m); else groups.push({ pt: pt, items: [m] });
+    });
+    groups.forEach(function (g) {
+      if (g.items.length < 2) return;
+      var b = new maplibregl.LngLatBounds();
+      g.items.forEach(function (m) { m.el.style.display = 'none'; b.extend([m.place.lng, m.place.lat]); });
+      var el = document.createElement('div');
+      el.className = 'cluster';
+      el.textContent = g.items.length;
+      asButton(el, g.items.length + ' places, tap to zoom in');
+      el.addEventListener('click', function (ev) { ev.stopPropagation(); map.fitBounds(b, { padding: 90, maxZoom: 16 }); });
+      clusters.push(new maplibregl.Marker({ element: el }).setLngLat(b.getCenter()).addTo(map));
+    });
+  }
+
   function makeEl(p) {
     var el = document.createElement('div');
     var isShop = p.kind === 'shop';
     el.className = 'pin';
+    asButton(el, p.name);
     el.innerHTML = pinSvg(isShop ? C.orange : C.green) +
       '<div class="face">' + (isShop ? TIRE : '<img src="' + C.gecko + '" alt=""/>') + '</div>' +
+      (p.open === true ? '<div class="open-dot"></div>' : '') +
       '<div class="label">' + esc(p.name) + '</div>';
     el.addEventListener('click', function (ev) { ev.stopPropagation(); if (!picking) send({ type: 'select', id: p.id }); });
     return el;
@@ -128,7 +171,7 @@ export function buildMapHtml() {
     list.forEach(function (p) {
       seen[p.id] = true;
       var m = markers[p.id];
-      if (m && (m.place.kind !== p.kind || m.place.name !== p.name)) { m.marker.remove(); m = null; }
+      if (m && (m.place.kind !== p.kind || m.place.name !== p.name || m.place.open !== p.open)) { m.marker.remove(); m = null; }
       if (!m) {
         var el = makeEl(p);
         m = markers[p.id] = { el: el, place: p, marker: new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([p.lng, p.lat]).addTo(map) };
@@ -147,6 +190,7 @@ export function buildMapHtml() {
       el.classList.toggle('selected', String(selected) === id);
       el.classList.toggle('dim', selected != null && String(selected) !== id);
     });
+    group();
   }
 
   window.handleMsg = function (m) {
@@ -172,7 +216,8 @@ export function buildMapHtml() {
     window.handleMsg(d);
   });
 
-  map.on('load', function () { setZoomClass(); send({ type: 'ready' }); });
+  // Not 'load': pins should show even while map images are still arriving on slow internet.
+  map.once('style.load', function () { setZoomClass(); sendCenter(); send({ type: 'ready' }); });
 })();
 </script>
 </body>

@@ -3,7 +3,7 @@ export function friendlyError(e: unknown): string {
   const raw = e instanceof Error ? e.message : typeof e === 'string' ? e : (e as { message?: string })?.message ?? '';
   const msg = raw.toLowerCase();
 
-  if (msg.includes('network request failed') || msg.includes('failed to fetch') || msg.includes('networkerror'))
+  if (msg.includes('network request failed') || msg.includes('failed to fetch') || msg.includes('fetch failed') || msg.includes('networkerror'))
     return 'No internet connection. Check your connection and try again.';
   if (msg.includes('invalid login credentials')) return 'Wrong email or password.';
   if (msg.includes('user already registered')) return 'An account with this email already exists. Try signing in.';

@@ -29,6 +29,7 @@ export const TextField = forwardRef<TextFieldRef, Props>(function TextField(
         style={[
           styles.box,
           { backgroundColor: t.card, borderColor: focused ? t.accent : t.border },
+          rest.multiline && { height: 110 },
           focused && { borderWidth: 2 },
         ]}
       >
