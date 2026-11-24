@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { Image } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,7 +15,7 @@ import { useAuth } from '@/lib/auth';
 import { confirm } from '@/lib/confirm';
 import { friendlyError } from '@/lib/errors';
 import { haptic } from '@/lib/haptics';
-import { deletePlace, distanceKm, isInSiargao, openStatus, SIARGAO_CENTER, usePlaces, type PlaceKind } from '@/lib/places';
+import { deletePlace, distanceKm, getRatings, isInSiargao, openStatus, SERVICE_KEYS, SIARGAO_CENTER, usePlaces, type PlaceKind, type Ratings } from '@/lib/places';
 import { useTheme, type TintName } from '@/lib/theme';
 
 type Filter = 'all' | 'open' | PlaceKind;
@@ -24,7 +24,7 @@ export default function MapScreen() {
   const t = useTheme();
   const map = useRef<PlacesMapHandle>(null);
   const { places, error, reload } = usePlaces();
-  const { isAdmin, profile } = useAuth();
+  const { isAdmin, profile, session } = useAuth();
 
   const [filter, setFilter] = useState<Filter>('all');
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -37,6 +37,8 @@ export default function MapScreen() {
   const [search, setSearch] = useState('');
   const [listOpen, setListOpen] = useState(false);
   const [mapKey, setMapKey] = useState(0);
+  const [view3d, setView3d] = useState(true);
+  const [ratings, setRatings] = useState<Ratings>({});
   const center = useRef(SIARGAO_CENTER);
   // Owners come here from "My shop" to choose their spot: pick=new, or pick=<their pin id>.
   const { pick } = useLocalSearchParams<{ pick?: string }>();
@@ -47,6 +49,13 @@ export default function MapScreen() {
     setListOpen(false);
     setPicking(true);
   }, [pick]);
+
+  // Stars are an extra: without them the map still works.
+  useFocusEffect(
+    useCallback(() => {
+      getRatings().then(setRatings).catch(() => {});
+    }, []),
+  );
 
   const all = places ?? [];
   const shown = useMemo(() => {
@@ -137,6 +146,7 @@ export default function MapScreen() {
         selectedId={selectedId}
         me={me}
         mePhoto={profile?.avatar_url}
+        view3d={view3d}
         picking={picking}
         onSelect={(id) => {
           if (picking) return;
@@ -271,6 +281,15 @@ export default function MapScreen() {
           >
             <Ionicons name="scan-outline" size={22} color={t.text} />
           </Pressable>
+          <Pressable
+            onPress={() => setView3d((v) => !v)}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: view3d }}
+            accessibilityLabel="3D map"
+            style={[styles.fab, { backgroundColor: view3d ? t.primary : t.card, borderColor: t.border }]}
+          >
+            <Text style={{ color: view3d ? t.onPrimary : t.text, fontWeight: '800', fontSize: 15 }}>3D</Text>
+          </Pressable>
         </View>
       )}
 
@@ -281,6 +300,16 @@ export default function MapScreen() {
               place={selected}
               me={me}
               isAdmin={isAdmin}
+              rating={ratings[selected.id]}
+              onRequest={
+                !isAdmin &&
+                (!session || profile?.role === 'user') &&
+                selected.owner_id &&
+                openStatus(selected) === true &&
+                SERVICE_KEYS.some((k) => selected.prices[k])
+                  ? () => (session ? router.push({ pathname: '/request', params: { place: String(selected.id) } }) : router.push('/sign-in'))
+                  : undefined
+              }
               onClose={() => setSelectedId(null)}
               onEdit={() => router.push({ pathname: '/place-form', params: { id: String(selected.id) } })}
               onDelete={onDelete}

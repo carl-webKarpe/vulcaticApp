@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TabIcon, tabScreenOptions } from '@/components/TabIcon';
 import { useAuth } from '@/lib/auth';
+import { useJobs } from '@/lib/jobs';
 import { useTheme } from '@/lib/theme';
 
 function FeedTitle() {
@@ -23,6 +24,8 @@ export default function TabsLayout() {
   const { session, profile } = useAuth();
   const role = profile?.role;
   const isOwner = role === 'shop' || role === 'vulcator';
+  const { jobs } = useJobs();
+  const newRequests = jobs?.filter((j) => j.owner_id === profile?.id && j.status === 'requested').length;
 
   // Owners start on their own screen.
   useEffect(() => {
@@ -53,7 +56,17 @@ export default function TabsLayout() {
           name="work"
           options={{
             title: 'Work',
+            tabBarBadge: newRequests || undefined,
             tabBarIcon: ({ focused }) => <TabIcon name="briefcase" focused={focused} />,
+          }}
+        />
+      </Tabs.Protected>
+      <Tabs.Protected guard={role === 'user'}>
+        <Tabs.Screen
+          name="requests"
+          options={{
+            title: 'Requests',
+            tabBarIcon: ({ focused }) => <TabIcon name="receipt" focused={focused} />,
           }}
         />
       </Tabs.Protected>

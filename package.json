@@ -38,6 +38,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "check": "node lib/jobStats.check.mjs",
     "build:apk": "eas build -p android --profile preview"
   },
   "private": true

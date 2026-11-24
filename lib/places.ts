@@ -136,6 +136,17 @@ export function usePlaces() {
   return { places, error, reload: () => setReloadKey((k) => k + 1) };
 }
 
+export type Ratings = Record<number, { stars: number; ratings: number }>;
+
+/** Average stars for each place. Says nothing about who rated. */
+export async function getRatings(): Promise<Ratings> {
+  const { data, error } = await supabase.rpc('place_ratings');
+  if (error) throw error;
+  return Object.fromEntries(
+    ((data ?? []) as { place_id: number; stars: number; ratings: number }[]).map((r) => [r.place_id, { stars: Number(r.stars), ratings: Number(r.ratings) }]),
+  );
+}
+
 export async function getPlace(id: number) {
   const { data, error } = await supabase.from('places').select('*').eq('id', id).single<Place>();
   if (error) throw error;

@@ -17,6 +17,7 @@ type Props = {
   selectedId: number | null;
   me: { lat: number; lng: number } | null;
   mePhoto?: string | null;
+  view3d: boolean;
   picking: boolean;
   onSelect: (id: number | null) => void;
   onCenter: (c: { lat: number; lng: number }) => void;
@@ -25,7 +26,7 @@ type Props = {
 };
 
 export const PlacesMap = forwardRef<PlacesMapHandle, Props>(function PlacesMap(
-  { places, selectedId, me, mePhoto, picking, onSelect, onCenter, onReady, onError },
+  { places, selectedId, me, mePhoto, view3d, picking, onSelect, onCenter, onReady, onError },
   ref,
 ) {
   const html = useMemo(buildMapHtml, []);
@@ -47,6 +48,9 @@ export const PlacesMap = forwardRef<PlacesMapHandle, Props>(function PlacesMap(
   useEffect(() => {
     if (ready && me) frame.current?.send({ type: 'me', ...me, photo: avatarUrl(mePhoto) });
   }, [ready, me, mePhoto]);
+  useEffect(() => {
+    if (ready) frame.current?.send({ type: 'view3d', on: view3d });
+  }, [ready, view3d]);
   useEffect(() => {
     if (ready) frame.current?.send({ type: 'pickMode', on: picking });
   }, [ready, picking]);

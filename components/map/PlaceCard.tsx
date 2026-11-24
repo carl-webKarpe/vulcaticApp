@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Button } from '@/components/Button';
 import { avatarUrl } from '@/lib/supabase';
 import { brand, useTheme } from '@/lib/theme';
 import { callPlace, directionsUrl, distanceKm, formatDistance, goesToCustomer, KIND_LABEL, openStatus, peso, SERVICE_KEYS, SERVICES, statusLabel, takesVisits, type Place } from '@/lib/places';
@@ -10,12 +11,15 @@ type Props = {
   place: Place;
   me: { lat: number; lng: number } | null;
   isAdmin: boolean;
+  rating?: { stars: number; ratings: number };
+  /** Missing when this place can't take requests right now. */
+  onRequest?: () => void;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
 };
 
-export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Props) {
+export function PlaceCard({ place, me, isAdmin, rating, onRequest, onClose, onEdit, onDelete }: Props) {
   const t = useTheme();
   const isShop = place.kind === 'shop';
   const tint = t.tints[isShop ? 'coral' : 'green'];
@@ -70,6 +74,7 @@ export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Pro
       </View>
 
       <View style={styles.rows}>
+        {rating && <Row icon="star" text={`${rating.stars} of 5 · ${rating.ratings} ${rating.ratings === 1 ? 'rating' : 'ratings'}`} />}
         {how ? <Row icon="car-outline" text={how} /> : null}
         {place.address && <Row icon="location-outline" text={place.address} />}
         {place.hours && <Row icon="time-outline" text={place.hours} />}
@@ -83,14 +88,16 @@ export function PlaceCard({ place, me, isAdmin, onClose, onEdit, onDelete }: Pro
         {place.description && <Text style={[styles.desc, { color: t.muted }]}>{place.description}</Text>}
       </View>
 
+      {onRequest && <Button title="Request help" icon="flash" variant="sun" onPress={onRequest} />}
       <View style={styles.actions}>
         {phone ? (
           <Pressable
             onPress={() => callPlace(phone)}
-            style={({ pressed }) => [styles.action, { backgroundColor: t.sun }, pressed && styles.pressed]}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.action, { backgroundColor: onRequest ? t.primary : t.sun }, pressed && styles.pressed]}
           >
-            <Ionicons name="call" size={18} color={t.onSun} />
-            <Text style={[styles.actionText, { color: t.onSun }]}>Call now</Text>
+            <Ionicons name="call" size={18} color={onRequest ? t.onPrimary : t.onSun} />
+            <Text style={[styles.actionText, { color: onRequest ? t.onPrimary : t.onSun }]}>Call now</Text>
           </Pressable>
         ) : null}
         <Pressable

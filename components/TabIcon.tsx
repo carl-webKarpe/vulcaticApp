@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { useTheme, type Theme } from '@/lib/theme';
 
-type Outlined = 'map' | 'build' | 'bicycle' | 'briefcase' | 'images' | 'person' | 'grid' | 'checkmark-done' | 'people';
+type Outlined = 'map' | 'receipt' | 'build' | 'bicycle' | 'briefcase' | 'images' | 'person' | 'grid' | 'checkmark-done' | 'people';
 
 /** Tab icon: filled inside a soft pill when it is the open tab. */
 export function TabIcon({ name, focused }: { name: Outlined; focused: boolean }) {

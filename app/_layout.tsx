@@ -7,6 +7,7 @@ import { StyleSheet, View } from 'react-native';
 import { EmptyState } from '@/components/EmptyState';
 import { Intro } from '@/components/Intro';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { JobsProvider } from '@/lib/jobs';
 import { PendingPostsProvider } from '@/lib/pending';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
@@ -48,6 +49,17 @@ function RootNavigator() {
           name="edit-profile"
           options={{
             title: 'Edit profile',
+            headerShown: true,
+            headerStyle: { backgroundColor: t.card },
+            headerTitleStyle: { color: t.text, fontWeight: '800' },
+            headerTintColor: t.accent,
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="request"
+          options={{
+            title: 'Request help',
             headerShown: true,
             headerStyle: { backgroundColor: t.card },
             headerTitleStyle: { color: t.text, fontWeight: '800' },
@@ -100,7 +112,9 @@ export default function RootLayout() {
     <AuthProvider>
       <PendingPostsProvider>
         <StatusBar style={t.scheme === 'dark' ? 'light' : 'dark'} />
-        <RootNavigator />
+        <JobsProvider>
+          <RootNavigator />
+        </JobsProvider>
         <OpeningIntro />
       </PendingPostsProvider>
     </AuthProvider>

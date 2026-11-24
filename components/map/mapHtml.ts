@@ -8,17 +8,20 @@ import { MAPLIBRE_CSS, MAPLIBRE_JS } from './maplibreBundle';
  * The map runs inside a WebView using MapLibre GL JS (open source) with free
  * OpenFreeMap tiles built from OpenStreetMap data: no API key, no usage limits.
  *
- * Messages in  (from the app):  places, me, select, focus, resetView, pickMode
+ * Messages in  (from the app):  places, me, select, focus, resetView, pickMode, view3d
  * Messages out (to the app):    ready, select, tap, center, error
  */
 // Colorful in dark mode too: the dark styles were too dim to read outdoors. Has 3D buildings up close.
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+/** Free, keyless ground heights (AWS open data) for the 3D hills. */
+const HEIGHTS_URL = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
 
 export function buildMapHtml() {
   const [w, s, e, n] = SIARGAO_BOUNDS;
   const pad = 0.06;
   const config = {
     style: STYLE_URL,
+    heights: HEIGHTS_URL,
     bounds: [
       [w, s],
       [e, n],
@@ -70,7 +73,7 @@ export function buildMapHtml() {
         animation: pulse 2s infinite; }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(26,115,232,.5); } 70% { box-shadow: 0 0 0 16px rgba(26,115,232,0); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232,0); } }
   .maplibregl-ctrl-attrib { font-size: 10px; }
-  .maplibregl-ctrl-bottom-left { bottom: 76px; } /* keep the map credit above the bottom button */
+  .maplibregl-ctrl-bottom-left { bottom: 76px; max-width: calc(100% - 76px); } /* keep the map credit above the bottom button */
   #fail { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; text-align: center; padding: 24px;
           color: #444; font-size: 15px; background: #eef2f4; }
 </style>
@@ -99,8 +102,6 @@ export function buildMapHtml() {
     '<g fill="#5b616c"><rect x="11" y="2" width="2" height="2.4" rx=".6"/><rect x="11" y="19.6" width="2" height="2.4" rx=".6"/>' +
     '<rect x="2" y="11" width="2.4" height="2" rx=".6"/><rect x="19.6" y="11" width="2.4" height="2" rx=".6"/></g></svg>';
 
-  var WRENCH = '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="' + C.green + '" d="M22.7 19 13.6 9.9c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>';
-
   function pinSvg(color) {
     return '<svg viewBox="0 0 44 54" width="44" height="54"><path d="M22 53c-1.2 0-13.5-15.6-17.6-23.4C2.8 26.7 2 23.9 2 21 2 9.95 10.95 1 22 1s20 8.95 20 20c0 2.9-.8 5.7-2.4 8.6C35.5 37.4 23.2 53 22 53z" fill="' +
       color + '" stroke="#fff" stroke-width="2"/></svg>';
@@ -108,9 +109,11 @@ export function buildMapHtml() {
 
   var map = new maplibregl.Map({
     container: 'map', style: C.style, bounds: C.bounds, fitBoundsOptions: { padding: 30 }, minZoom: 9, maxZoom: 18,
-    maxBounds: C.maxBounds, attributionControl: false, pitchWithRotate: false
+    maxBounds: C.maxBounds, attributionControl: false, pitchWithRotate: false, pitch: 45, maxPitch: 60
   });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  // The map credit opens by itself, then folds into its (i) button so it doesn't cover the map.
+  setTimeout(function () { var c = document.querySelector('.maplibregl-ctrl-attrib'); if (c) { c.classList.remove('maplibregl-compact-show'); c.removeAttribute('open'); } }, 6000);
   map.dragRotate.disable();
   map.touchZoomRotate.disableRotation();
 
@@ -121,10 +124,39 @@ export function buildMapHtml() {
   var selected = null;
   var meMarker = null;
   var picking = false;
+  var want3d = true;
+
+  // Choosing a spot is always flat, so the pin tip is exactly on the saved place.
+  function applyView() {
+    var on = want3d && !picking;
+    if (map.getSource('heights')) map.setTerrain(on ? { source: 'heights', exaggeration: 1.6 } : null);
+    map.easeTo({ pitch: on ? 45 : 0, duration: 500 });
+  }
+
+  // Brighter colors than the standard style, plus hill shading and 3D ground.
+  map.on('style.load', function () {
+    var colors = {
+      background: ['background-color', '#F6F1E3'], water: ['fill-color', '#35B9F1'], landcover_wood: ['fill-color', '#8FD67A'],
+      landcover_grass: ['fill-color', '#B7E58E'], park: ['fill-color', '#9FE08A'], landcover_sand: ['fill-color', '#FFE6A3'],
+      landuse_school: ['fill-color', '#FFE9B8'], landuse_hospital: ['fill-color', '#FFD3DC'], building: ['fill-color', '#F3C9A5']
+    };
+    Object.keys(colors).forEach(function (id) { if (map.getLayer(id)) map.setPaintProperty(id, colors[id][0], colors[id][1]); });
+    if (map.getLayer('building-3d')) {
+      map.setPaintProperty('building-3d', 'fill-extrusion-color', ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 5], 0, '#FFD9B3', 10, '#FFB98A', 30, '#F08A7B']);
+      map.setPaintProperty('building-3d', 'fill-extrusion-opacity', 0.9);
+    }
+    var first = map.getStyle().layers.find(function (l) { return l.type === 'line' || l.type === 'symbol'; });
+    ['heights', 'shade'].forEach(function (id) {
+      if (!map.getSource(id)) map.addSource(id, { type: 'raster-dem', tiles: [C.heights], encoding: 'terrarium', tileSize: 256, maxzoom: 13, attribution: 'Heights: AWS Terrain Tiles' });
+    });
+    if (!map.getLayer('hills')) map.addLayer({ id: 'hills', type: 'hillshade', source: 'shade', paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#3B6B3A' } }, first && first.id);
+    applyView();
+  });
 
   function setZoomClass() { document.body.classList.toggle('zoomed', map.getZoom() >= 12.5); }
   map.on('zoom', setZoomClass);
   map.on('zoomend', group);
+  map.on('pitchend', group);
   function sendCenter() { var c = map.getCenter(); send({ type: 'center', lat: c.lat, lng: c.lng }); }
   map.on('moveend', sendCenter);
   map.on('click', function () { if (!picking) send({ type: 'tap' }); });
@@ -226,7 +258,8 @@ export function buildMapHtml() {
     }
     if (m.type === 'focus') map.flyTo({ center: [m.lng, m.lat], zoom: m.zoom || 15, duration: 900 });
     if (m.type === 'resetView') map.fitBounds(C.bounds, { padding: 30, duration: 800 });
-    if (m.type === 'pickMode') { picking = !!m.on; document.body.classList.toggle('picking', picking); }
+    if (m.type === 'pickMode' && picking !== !!m.on) { picking = !!m.on; document.body.classList.toggle('picking', picking); applyView(); }
+    if (m.type === 'view3d' && want3d !== !!m.on) { want3d = !!m.on; applyView(); }
   };
   window.addEventListener('message', function (e) {
     var d = e.data;

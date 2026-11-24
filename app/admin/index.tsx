@@ -3,6 +3,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Bars } from '@/components/Bars';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { Hero, IconBadge } from '@/components/Hero';
@@ -125,25 +126,6 @@ function Tile({ icon, tint, label, value }: { icon: keyof typeof Ionicons.glyphM
   );
 }
 
-/** Every bar shows its name and number, so the chart also reads as a table. */
-function Bars({ rows }: { rows: { label: string; value: number }[] }) {
-  const t = useTheme();
-  const max = Math.max(1, ...rows.map((r) => r.value));
-  return (
-    <View style={styles.bars}>
-      {rows.map((r) => (
-        <View key={r.label} accessible accessibilityLabel={`${r.label}: ${r.value}`} style={styles.barRow}>
-          <Text style={[styles.barLabel, { color: t.text }]}>{r.label}</Text>
-          <View style={styles.flex}>
-            <View style={[styles.bar, { backgroundColor: t.accent, width: `${(r.value / max) * 100}%` }]} />
-          </View>
-          <Text style={[styles.barValue, { color: t.text }]}>{r.value}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   loading: { marginTop: 64 },
@@ -154,10 +136,5 @@ const styles = StyleSheet.create({
   tileLabel: { fontSize: 14 },
   card: { borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, padding: 16, gap: 12 },
   cardTitle: { fontSize: 17, fontWeight: '800' },
-  bars: { gap: 10 },
-  barRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  barLabel: { width: 76, fontSize: 14 },
-  bar: { height: 14, borderTopRightRadius: 4, borderBottomRightRadius: 4 },
-  barValue: { minWidth: 28, fontSize: 14, fontWeight: '700', textAlign: 'right' },
   note: { fontSize: 14, lineHeight: 20, textAlign: 'center' },
 });
